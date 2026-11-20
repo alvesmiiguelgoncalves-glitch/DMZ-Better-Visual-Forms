@@ -1,0 +1,20 @@
+{
+  "key.categories.dmz_better_visual_forms": "DMZ: Better Visual Forms",
+  "key.dmz_better_visual_forms.toggle_aura_3d": "Toggle My Aura - 3D Style",
+  "key.dmz_better_visual_forms.toggle_outlines": "Toggle Transformation Outlines",
+  "key.dmz_better_visual_forms.toggle_tail": "Loosen/tie the tail",
+  "message.dmz_better_visual_forms.on": "on",
+  "message.dmz_better_visual_forms.off": "off",
+  "message.dmz_better_visual_forms.aura3d": "My Aura - 3D Style: %s",
+  "message.dmz_better_visual_forms.outlines": "Transformation Outlines: %s",
+  "message.dmz_better_visual_forms.tail": "Loose tail: %s",
+  "message.dmz_better_visual_forms.tail_forced": "The current form controls the tail",
+  "gui.dragonminez.config.bvfAuraState": "Aura State on Transformation",
+  "gui.dragonminez.config.bvfRays": "Transformation Lightning",
+  "gui.dragonminez.config.bvf.aura.disabled": "Disabled",
+  "gui.dragonminez.config.bvf.aura.temporary": "Temporary",
+  "gui.dragonminez.config.bvf.aura.always": "Always On",
+  "gui.dragonminez.config.bvf.rays.off": "Disabled",
+  "gui.dragonminez.config.bvf.rays.reduced": "Reduced",
+  "gui.dragonminez.config.bvf.rays.always": "Always On"
+}

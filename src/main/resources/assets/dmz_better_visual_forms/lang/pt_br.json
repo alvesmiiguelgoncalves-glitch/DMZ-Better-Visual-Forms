@@ -1,0 +1,20 @@
+{
+  "key.categories.dmz_better_visual_forms": "DMZ: Better Visual Forms",
+  "key.dmz_better_visual_forms.toggle_aura_3d": "Ligar/desligar Minha Aura - Estilo 3D",
+  "key.dmz_better_visual_forms.toggle_outlines": "Ligar/desligar Contornos de Transformação",
+  "key.dmz_better_visual_forms.toggle_tail": "Soltar/amarrar a cauda",
+  "message.dmz_better_visual_forms.on": "ligado",
+  "message.dmz_better_visual_forms.off": "desligado",
+  "message.dmz_better_visual_forms.aura3d": "Minha Aura - Estilo 3D: %s",
+  "message.dmz_better_visual_forms.outlines": "Contornos de Transformação: %s",
+  "message.dmz_better_visual_forms.tail": "Cauda solta: %s",
+  "message.dmz_better_visual_forms.tail_forced": "A forma atual controla a cauda",
+  "gui.dragonminez.config.bvfAuraState": "Estado de Aura ao Transformar",
+  "gui.dragonminez.config.bvfRays": "Raios das Transformações",
+  "gui.dragonminez.config.bvf.aura.disabled": "Desativado",
+  "gui.dragonminez.config.bvf.aura.temporary": "Temporário",
+  "gui.dragonminez.config.bvf.aura.always": "Sempre Ativo",
+  "gui.dragonminez.config.bvf.rays.off": "Desativado",
+  "gui.dragonminez.config.bvf.rays.reduced": "Reduzido",
+  "gui.dragonminez.config.bvf.rays.always": "Sempre Ativo"
+}
