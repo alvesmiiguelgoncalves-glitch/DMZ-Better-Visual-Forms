@@ -22,6 +22,11 @@ import java.util.Map;
  * {@code ssj4d} se a forma usa o modelo do Daima, senao {@code ssj4gt}), {@code false} (nao troca) ou o nome de uma pasta de texturas, como {@code "ssj3"}
  * (usa {@code textures/armor/ssj3/...} do addon ou de qualquer resource pack). O arquivo e
  * relido quando muda, sem reiniciar o jogo.</p>
+ *
+ * <p>Stack forms (Kaio-ken etc.): {@code stack.<grupo>.<forma>} (ou {@code stack.<grupo>.*} para o grupo todo).
+ * Forma + stack: junte as duas chaves com {@code +}, ex.:
+ * {@code race.dragonminez.saiyan.form.supersaiyan.supersaiyan4+stack.kaioken.x10}.
+ * Ordem de prioridade: combinacao &gt; forma (da lista ou SSJ4 automatico) &gt; stack.</p>
  */
 public final class FormsConfig {
 
@@ -52,9 +57,24 @@ public final class FormsConfig {
     /** @return a entrada da forma, ou {@code null} se ela nao esta no arquivo. */
     @Nullable
     public static synchronized Entry lookup(String race, String group, String form) {
+        return lookupKey(formKey(race, group, form));
+    }
+
+    /** Chave de uma forma: {@code race.dragonminez.<raca>.form.<grupo>.<forma>}. */
+    public static String formKey(String race, String group, String form) {
+        return "race.dragonminez." + race + ".form." + group + "." + form;
+    }
+
+    /** Chave de uma stack form: {@code stack.<grupo>.<forma>} (ex.: {@code stack.kaioken.x10}). */
+    public static String stackKey(String group, String form) {
+        return "stack." + group + "." + form;
+    }
+
+    /** Qualquer chave do arquivo (forma, stack, ou combinacao {@code <forma>+<stack>}). */
+    @Nullable
+    public static synchronized Entry lookupKey(String key) {
         reloadIfChanged();
-        String key = ("race.dragonminez." + race + ".form." + group + "." + form).toLowerCase(Locale.ROOT);
-        return cached.get(key);
+        return cached.get(key.toLowerCase(Locale.ROOT));
     }
 
     private static void reloadIfChanged() {

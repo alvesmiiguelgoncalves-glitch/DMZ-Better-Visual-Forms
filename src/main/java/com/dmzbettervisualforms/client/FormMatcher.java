@@ -1,6 +1,7 @@
 package com.dmzbettervisualforms.client;
 
 import com.dmzbettervisualforms.FormsConfig;
+import com.dmzbettervisualforms.SsjArmorConfig;
 import com.dragonminez.common.stats.FormTransition;
 import com.dragonminez.common.stats.StatsData;
 import com.dragonminez.common.stats.character.Character;
@@ -16,27 +17,65 @@ public final class FormMatcher {
     private FormMatcher() {
     }
 
+    /** Perfil especial: a roupa original do DMZ sem as mangas (formas "buffed", onde o DMZ nao desenha a manga). */
+    public static final String NO_ARMS = "@noarms";
+
     /**
      * @return {@code null} = roupa original do DMZ; senao o nome da pasta de texturas dentro de {@code textures/armor/}
-     *         ({@code ssj4gt}, {@code ssj4d} ou o nome escolhido no JSON das formas).
+     *         ({@code ssj4gt}, {@code ssj4d}, o nome escolhido no JSON das formas ou {@link #NO_ARMS}).
+     *
+     * <p>Prioridade: combinacao forma+stack &gt; forma (lista ou SSJ4 automatico) &gt; stack &gt; mangas de forma "buffed".</p>
      */
     @Nullable
     public static String profileFor(StatsData stats, FormTransition.Look look) {
         Character character = stats.getCharacter();
         if (character == null || look == null) return null;
+        String race = safe(character.getRaceName());
 
-        // 1) Lista de formas do config (chaves no padrao do lang do DMZ).
-        String form = look.form();
-        if (form != null && !form.isEmpty()) {
-            FormsConfig.Entry listed = FormsConfig.lookup(safe(character.getRaceName()), safe(look.formGroup()), form);
-            if (listed != null) {
-                if (!listed.enabled()) return null;
-                return listed.profile().isEmpty() ? bySsj4Model(look) : listed.profile();
+        String formKey = look.hasForm() ? FormsConfig.formKey(race, safe(look.formGroup()), look.form()) : null;
+        String stackKey = look.hasStack() ? FormsConfig.stackKey(safe(look.stackGroup()), look.stack()) : null;
+        String stackGroupKey = look.hasStack() ? FormsConfig.stackKey(safe(look.stackGroup()), "*") : null;
+
+        // 1) combinacao forma + stack
+        if (formKey != null && stackKey != null) {
+            FormsConfig.Entry combo = FormsConfig.lookupKey(formKey + "+" + stackKey);
+            if (combo == null) combo = FormsConfig.lookupKey(formKey + "+" + stackGroupKey);
+            if (combo != null) return resolve(combo, look);
+        }
+
+        // 2) forma: da lista ou SSJ4 detectado pelo modelo
+        if (formKey != null) {
+            FormsConfig.Entry listed = FormsConfig.lookupKey(formKey);
+            String profile = listed != null ? resolve(listed, look) : bySsj4Model(look);
+            if (profile != null) return profile;
+        }
+
+        // 3) stack
+        if (stackKey != null) {
+            FormsConfig.Entry stack = FormsConfig.lookupKey(stackKey);
+            if (stack == null) stack = FormsConfig.lookupKey(stackGroupKey);
+            if (stack != null) {
+                String profile = resolve(stack, look);
+                if (profile != null) return profile;
             }
         }
 
-        // 2) Forma que nao esta na lista: o SSJ4 e detectado pelo modelo ("ssj4gt" e "ssj4d", mesmo criterio da pelagem do DMZ).
-        return bySsj4Model(look);
+        // 4) formas "buffed": o DMZ nao desenha a manga, entao ela some junto com a transformacao
+        return SsjArmorConfig.FADE_SLEEVES.get() && hidesSleeves(look) ? NO_ARMS : null;
+    }
+
+    @Nullable
+    private static String resolve(FormsConfig.Entry entry, FormTransition.Look look) {
+        if (!entry.enabled()) return null;
+        return entry.profile().isEmpty() ? bySsj4Model(look) : entry.profile();
+    }
+
+    /** Mesmos modelos que o DMZ desenha sem manga de armadura (ver DMZCustomArmorLayer). */
+    private static boolean hidesSleeves(FormTransition.Look look) {
+        String m = look.customModel();
+        if (m.isEmpty()) return false;
+        return m.contains("buffed") || m.contains("frostdemon_fp") || m.contains("majin_ultra") || m.contains("namekian_orange")
+                || m.contains("frostdemon_fifth") || m.contains("frostdemon_metalcore") || m.contains("4arms");
     }
 
     /** {@code ssj4d} / {@code ssj4gt} se a forma usa um desses modelos; senao {@code null}. */

@@ -51,6 +51,20 @@ Outras formas: `config/dmz_better_visual_forms-forms.json` (o arquivo do antigo 
 }
 ```
 
+**Stack forms (Kaio-ken etc.)**: `stack.<grupo>.<forma>` (ou `stack.<grupo>.*` para o grupo todo). Forma + stack: junte com `+`.
+Prioridade: combinação > forma > stack.
+
+```json
+{
+  "stack.kaioken.x10": "kaioken",
+  "race.dragonminez.saiyan.form.supersaiyan.supersaiyan4+stack.kaioken.x10": "ssj4kaioken",
+  "race.dragonminez.saiyan.form.supersaiyanblue.supersaiyanblue+stack.kaioken.*": "bluekaioken"
+}
+```
+
+**Mangas**: nas formas "buffed" (ex.: SSJ Full Power) o DMZ não desenha a manga da roupa; o addon faz a manga sumir junto com a transformação (`fadeSleeves` no toml).
+A camisa e as mangas somem de cima para baixo.
+
 `true` = automático (pasta `ssj4d` ou `ssj4gt` pelo modelo; formas sem modelo SSJ4 ficam como estão), `false` = não troca, `"nome"` = usa a pasta `armor/nome/`. O arquivo é relido quando salva.
 
 ## Opções
@@ -60,7 +74,12 @@ Outras formas: `config/dmz_better_visual_forms-forms.json` (o arquivo do antigo 
 | `forceTiedTail` | boolean / `false` | A cauda fica amarrada na cintura nessa forma (útil no SSJ3, em que a cauda some dentro do cabelo). |
 | `forceLooseTail` | boolean / `false` | A cauda fica solta nessa forma (útil no SSJ4). Se as duas estiverem `true`, a solta vence. |
 | `stackTintAffectsHairAndTail` | boolean / `true` | Vale na forma **base** (ex.: Blue). Com `false`, a tinta de uma forma empilhável (Kaio-ken) **não** pinta cabelo e cauda. |
-| `stackTintHairAndTailIntensity` | número / `-1` | Vale na forma **base**. De 0 a 1: intensidade da tinta da forma empilhável **no cabelo e na cauda**. `-1` = usa a intensidade da própria forma empilhável. |
+| `stackTintHairAndTailIntensity` | número / `-1` | Vale na forma **base**. De 0 a 1: intensidade da tinta da forma empilhável **no cabelo, na cauda e nas sobrancelhas**. `-1` = usa a intensidade da própria forma empilhável. |
+| `stackTintColor` | texto / `""` | Vale na forma **base**. Cor da tinta da forma empilhável **na pele** (corpo). `""` ou `"#"` = usa a cor da própria forma empilhável. |
+| `stackTintIntensity` | número / `-1` | Vale na forma **base**. De 0 a 1: intensidade da tinta da forma empilhável **na pele**. `-1` = usa a intensidade da própria forma empilhável; `0` = sem tinta na pele. |
+| `stackOutlinePrimaryColor` | texto / `""` | Vale na forma **base**. Cor **primária** do outline enquanto uma forma empilhável está ativa. `""` ou `"#"` = usa a cor primária do outline da própria forma empilhável. |
+| `stackOutlineThicknessMultiplicator` | número / `1.0` | Vale na forma **base**. Multiplica a espessura do outline **da forma empilhável** (cada nível com a sua). `2.0` = o dobro, `1.0` = igual. |
+| `stackOutlineColorMode` | texto / `""` | Vale na forma **base**. `"pulse"` ou `"gradient"` para o outline da forma empilhável. `""` = usa o modo do próprio outline da empilhável. |
 | `scleraColor` | texto / `""` | Cor da esclera (parte branca do olho), por exemplo `"#FFFFFF"`. Vazio = cor padrão do jogo. |
 | `noEyebrows` | boolean / `false` | Esconde as sobrancelhas: não desenha a camada de sobrancelha e usa a textura `ssj3eyebrows_eye_N` do DMZ (a do SSJ3) por cima, escolhida pelo tipo de olho do jogador. |
 | `eyeliner` | boolean / `false` | Desenha o delineado nos olhos (usa a textura `ssj4_eyes_N` do DMZ, escolhida pelo tipo de olho do jogador). |
@@ -81,7 +100,12 @@ Outras formas: `config/dmz_better_visual_forms-forms.json` (o arquivo do antigo 
 },
 "supersaiyanblue": {
   "stackTintAffectsHairAndTail": true,
-  "stackTintHairAndTailIntensity": 0.1
+  "stackTintHairAndTailIntensity": 0.1,
+  "stackTintColor": "",
+  "stackTintIntensity": -1.0,
+  "stackOutlinePrimaryColor": "#FF2A2A",
+  "stackOutlineThicknessMultiplicator": 2.0,
+  "stackOutlineColorMode": "gradient"
 },
 "masteredultrainstinct": {
   "chargeKiAnimation": false,
@@ -122,17 +146,27 @@ mecha, que o DMZ não tinge. Se a linha não aparece, a opção não foi lida (c
 
 - Corrigido: os mixins do cabelo e das partes da raça não eram aplicados (o método era `static` e o do DMZ não é). Por isso a tinta nunca chegava no cabelo.
 
-## v1.2.0 — Kaioken / stack forms
+## v1.2.0 — opções da forma base para formas empilháveis (Kaio-ken)
 
-- **`tintColor` vazio** (`""`): a tinta usa a cor da aura (`auraColor`) da própria forma. Só vale se `tintIntensity` for maior que 0.
-- **`outlineShader.primaryColor` vazio** (`""` ou `"#"`): usa o `auraColor` da stack. `secondaryColor` vazio usa a mesma cor do primário.
-- **`outlineShader.addToBaseOutline`** (boolean, `false`): com `true`, o outline da stack parte do outline da forma base (se ela tiver um) e **multiplica a espessura** dele pelo `outlineThickness` da stack (`2.0` = o dobro, `1.0` = igual). Sem isso, o outline da stack substitui o da base (comportamento original do DMZ). O `outlineShader` da stack precisa ter `"enabled": true`.
-- **Tinta do Kaioken x2 → x20**: cada nível é uma forma separada com seu próprio `tintIntensity`. Deixe `stackTintHairAndTailIntensity` em `-1.0` (padrão) para o cabelo e a cauda seguirem o `tintIntensity` de cada nível. Um valor fixo (ex.: `0.1`) vale para todos os níveis e esconde a diferença.
+As opções novas ficam na forma **base** (ex.: Blue) e dizem como uma forma empilhável (Kaio-ken) fica **em cima dela**. Nada muda se você não escrever as opções, e sem forma base ativa (Kaio-ken sozinho) vale a configuração da própria forma empilhável.
 
-Exemplo (x20):
+- **Pele:** `stackTintColor` e `stackTintIntensity`. Com `""` e `-1`, a pele usa a tinta da própria forma empilhável.
+- **Cabelo, cauda e sobrancelhas:** continuam em `stackTintAffectsHairAndTail` e `stackTintHairAndTailIntensity`, sempre com a **cor** da forma empilhável.
+- **Outline:** `stackOutlinePrimaryColor`, `stackOutlineThicknessMultiplicator` e `stackOutlineColorMode`. Quando uma delas está preenchida (cor diferente de vazio, multiplicador diferente de `1.0` ou modo diferente de vazio), o outline é o da própria forma empilhável, com estas trocas:
+  - cor **primária** = `stackOutlinePrimaryColor` (vazio ou `"#"` = primária da forma empilhável);
+  - espessura = espessura da forma empilhável × `stackOutlineThicknessMultiplicator` (cada nível do Kaio-ken multiplica o seu valor);
+  - modo de cor = `stackOutlineColorMode` (vazio = o da forma empilhável).
+
+  Cor secundária, fogo e brilho vêm sempre da forma empilhável, que precisa ter `outlineShader.enabled: true`. Com tudo no padrão, vale o comportamento original do DMZ.
+- **Tinta x2 → x20:** cada nível do Kaio-ken é uma forma separada com seu próprio `tintIntensity`. Deixe `stackTintIntensity` e `stackTintHairAndTailIntensity` em `-1` para cada nível usar o seu. Um valor fixo vale para todos os níveis.
+- Removidas as opções da 1.2.0 anterior (`tintColor` vazio, `primaryColor` vazio e `addToBaseOutline`).
+
+Exemplo (na forma base):
 ```json
-"tintColor": "",
-"tintIntensity": 0.5,
+"stackTintColor": "",
+"stackTintIntensity": -1.0,
 "stackTintHairAndTailIntensity": -1.0,
-"outlineShader": { "enabled": true, "primaryColor": "", "secondaryColor": "", "outlineThickness": 2.0, "addToBaseOutline": true }
+"stackOutlinePrimaryColor": "#FF2A2A",
+"stackOutlineThicknessMultiplicator": 2.0,
+"stackOutlineColorMode": "gradient"
 ```

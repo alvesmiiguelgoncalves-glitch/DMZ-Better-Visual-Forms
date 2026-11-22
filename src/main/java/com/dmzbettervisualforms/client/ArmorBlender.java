@@ -41,6 +41,10 @@ public final class ArmorBlender {
     private static final Map<String, ResourceLocation> BLENDS = new HashMap<>();
     private static final Set<ResourceLocation> DYNAMIC_TEXTURES = new HashSet<>();
     private static final Set<String> FAILED = new HashSet<>();
+    private static final Map<ResourceLocation, ResourceLocation> ARMLESS = new HashMap<>();
+
+    /** Retangulos dos bracos num layout de skin 64x64: x, y, largura, altura (braco direito/esquerdo, camada de fora). */
+    private static final int[][] ARM_RECTS = {{40, 16, 16, 16}, {32, 48, 16, 16}, {40, 32, 16, 16}, {48, 48, 16, 16}};
 
     private ArmorBlender() {
     }
@@ -70,10 +74,14 @@ public final class ArmorBlender {
     /** Textura do perfil para esta peca; se o perfil nao tem a peca, vale a original do DMZ. */
     private static ResourceLocation resolve(ResourceLocation original, String path, @Nullable String profile) {
         if (profile == null) return original;
+        if (FormMatcher.NO_ARMS.equals(profile)) return armless(original);
         String rest = path.substring(ARMOR_DIR.length());
         String variantPath = profile.isEmpty() ? path : ARMOR_DIR + profile + "/" + rest;
         ResourceLocation variant = new ResourceLocation(DmzBetterVisualForms.TEXTURE_NAMESPACE, variantPath);
-        return variantExists(variant) ? variant : original;
+        if (variantExists(variant)) return variant;
+        // SSJ4 (GT e Daima): o DMZ tambem nao desenha a manga; peca que a pasta nao tem perde a manga na transicao em vez de no fim
+        boolean ssj4 = FormMatcher.SSJ4_GT.equals(profile) || FormMatcher.SSJ4_DAIMA.equals(profile);
+        return ssj4 && SsjArmorConfig.FADE_SLEEVES.get() ? armless(original) : original;
     }
 
     /** Chamado quando os resource packs recarregam: descarta caches e texturas geradas. */
@@ -84,10 +92,50 @@ public final class ArmorBlender {
         }
         DYNAMIC_TEXTURES.clear();
         BLENDS.clear();
+        ARMLESS.clear();
         VARIANT_EXISTS.clear();
         FAILED.clear();
         FadeTracker.clear();
         ArmorContext.reset();
+    }
+
+    /** A textura original com os bracos apagados (gerada uma vez); fora da thread de render devolve a original. */
+    private static ResourceLocation armless(ResourceLocation original) {
+        ResourceLocation cached = ARMLESS.get(original);
+        if (cached != null) return cached;
+        if (!RenderSystem.isOnRenderThread()) return original;
+
+        NativeImage output = null;
+        try (NativeImage source = read(original)) {
+            int width = source.getWidth();
+            int height = source.getHeight();
+            output = new NativeImage(NativeImage.Format.RGBA, width, height, false);
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    output.setPixelRGBA(x, y, insideArm(x * 64 / width, y * 64 / height) ? 0 : source.getPixelRGBA(x, y));
+                }
+            }
+            ResourceLocation location = new ResourceLocation(DmzBetterVisualForms.TEXTURE_NAMESPACE,
+                    "dynamic/armless_" + sanitize(original.toString()) + "_" + Integer.toHexString(original.hashCode()));
+            Minecraft.getInstance().getTextureManager().register(location, new DynamicTexture(output));
+            output = null;
+            DYNAMIC_TEXTURES.add(location);
+            ARMLESS.put(original, location);
+            return location;
+        } catch (Exception e) {
+            ARMLESS.put(original, original); // nao tenta de novo ate recarregar
+            DmzBetterVisualForms.LOGGER.warn("[dmz_better_visual_forms] nao foi possivel gerar a roupa sem manga de {}.", original, e);
+            return original;
+        } finally {
+            if (output != null) output.close();
+        }
+    }
+
+    private static boolean insideArm(int x, int y) {
+        for (int[] r : ARM_RECTS) {
+            if (x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3]) return true;
+        }
+        return false;
     }
 
     private static boolean variantExists(ResourceLocation variant) {
@@ -130,7 +178,7 @@ public final class ArmorBlender {
                 for (int x = 0; x < width; x++) {
                     int a = from.getPixelRGBA(x * fromWidth / width, y * fromHeight / height);
                     int b = to.getPixelRGBA(x, y);
-                    output.setPixelRGBA(x, y, mix(a, b, t, threshold(x, y)));
+                    output.setPixelRGBA(x, y, mix(a, b, t, threshold(x, y * 64 / height), hem(y * 64 / height)));
                 }
             }
 
@@ -167,13 +215,15 @@ public final class ArmorBlender {
      * progresso. O mesmo ponto usa sempre o mesmo limiar, entao ida e volta sao a mesma animacao
      * ao contrario. Pixels que existem nas duas roupas misturam a cor normalmente.</p>
      */
-    private static int mix(int a, int b, float t, float threshold) {
+    private static int mix(int a, int b, float t, float threshold, boolean hem) {
         int alphaA = (a >>> 24) & 0xFF;
         int alphaB = (b >>> 24) & 0xFF;
 
         if (alphaA == 0 && alphaB == 0) return 0;
-        if (alphaB == 0) return threshold >= t ? a : 0;   // so na roupa antiga: some quando t passa do limiar
-        if (alphaA == 0) return threshold < t ? b : 0;    // so na roupa da forma: aparece quando t passa do limiar
+        // Barra da peca (punho/munhequeira, barra da camisa e da calca): como a posicao dos pixels pode mudar de uma
+        // roupa para a outra, ela nao some e reaparece: a antiga fica ate o fim e a nova ja aparece no comeco.
+        if (alphaB == 0) return (hem || threshold >= t) ? a : 0;   // so na roupa antiga: some quando t passa do limiar
+        if (alphaA == 0) return (hem || threshold < t) ? b : 0;    // so na roupa da forma: aparece quando t passa do limiar
 
         float weightA = alphaA * (1.0f - t);
         float weightB = alphaB * t;
@@ -185,8 +235,25 @@ public final class ArmorBlender {
         return (alpha << 24) | (blue << 16) | (green << 8) | red;
     }
 
-    /** Limiar fixo (0..1) por pixel, espalhado de forma irregular. */
+    /**
+     * Limiar fixo (0..1) por pixel. Mistura a altura na peca (topo some primeiro, base por ultimo, nos layouts
+     * de skin de 64 px onde cada peca tem linhas de 4 a 15 dentro do bloco de 16) com um pouco de ruido,
+     * para nao ficar uma linha reta. Linhas fora das pecas (cabeca etc.) usam so o ruido.
+     */
     private static float threshold(int x, int y) {
+        float noise = noise(x, y);
+        if (y < 16) return noise;
+        float s = Math.max(0.0f, Math.min(1.0f, ((y & 15) - 4) / 11.0f));
+        return Math.min(1.0f, 0.78f * s + 0.22f * noise);
+    }
+
+    /** Linhas de baixo (12 a 15 dentro do bloco de 16) das pecas: punhos e barras. */
+    private static boolean hem(int y) {
+        return y >= 16 && (y & 15) >= 12;
+    }
+
+    /** Ruido fixo (0..1) por pixel, espalhado de forma irregular. */
+    private static float noise(int x, int y) {
         int h = x * 0x1F123BB5 + y * 0x5F356495;
         h ^= h >>> 15;
         h *= 0x2C1B3C6D;

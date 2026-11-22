@@ -3,6 +3,8 @@ package com.dmzbettervisualforms.client;
 import com.dmzbettervisualforms.DmzBetterVisualForms;
 import com.dmzbettervisualforms.SsjArmorConfig;
 import com.dmzbettervisualforms.util.StatusAccess;
+import com.dragonminez.common.config.ConfigManager;
+import com.dragonminez.common.config.FormConfig;
 import com.dragonminez.common.stats.StatsCapability;
 import com.dragonminez.common.stats.StatsData;
 import com.dragonminez.common.stats.StatsProvider;
@@ -27,6 +29,10 @@ public final class VisualEvents {
 
     private static final class PlayerState {
         String key;
+        String formGroup = "";
+        String form = "";
+        String stackGroup = "";
+        String stack = "";
         long transformTick = Long.MIN_VALUE;
         long seen;
     }
@@ -59,8 +65,12 @@ public final class VisualEvents {
         if (character == null) return;
 
         boolean transformed = character.hasActiveForm() || character.hasActiveStackForm();
-        String key = character.getActiveFormGroup() + "|" + character.getActiveForm() + "|"
-                + character.getActiveStackFormGroup() + "|" + character.getActiveStackForm();
+        String fg = nz(character.getActiveFormGroup());
+        String f = nz(character.getActiveForm());
+        String sg = nz(character.getActiveStackFormGroup());
+        String st = nz(character.getActiveStackForm());
+        String key = fg + "|" + f + "|" + sg + "|" + st;
+        String race = nz(character.getRaceName());
 
         PlayerState state = STATES.get(player.getId());
         if (state == null) {
@@ -68,18 +78,57 @@ public final class VisualEvents {
             state.key = key; // quem ja entra transformado nao dispara
             STATES.put(player.getId(), state);
         } else if (!key.equals(state.key)) {
+            boolean descent = isDescent(race, state, fg, f, sg, st);
             state.key = key;
-            if (transformed) state.transformTick = now;
+            if (descent || !transformed) {
+                state.transformTick = Long.MIN_VALUE; // destransformar nao liga a aura/raios temporarios
+            } else {
+                state.transformTick = now;
+            }
         }
+        state.formGroup = fg;
+        state.form = f;
+        state.stackGroup = sg;
+        state.stack = st;
         state.seen = now;
 
         boolean aura = switch (SsjArmorConfig.AURA_STATE.get()) {
             case ALWAYS -> transformed;
-            case TEMPORARY -> transformed && now - state.transformTick <= SsjArmorConfig.AURA_TEMP_SECONDS.get() * 20L;
+            case TEMPORARY -> transformed && state.transformTick != Long.MIN_VALUE
+                    && now - state.transformTick <= SsjArmorConfig.AURA_TEMP_SECONDS.get() * 20L;
             default -> false;
         };
         StatusAccess access = StatusAccess.of(stats.getStatus());
         if (access != null && access.bvf$auraOverride() != aura) access.bvf$setAuraOverride(aura);
+    }
+
+    private static String nz(String value) {
+        return value == null ? "" : value;
+    }
+
+    /** Foi uma volta (forma ou stack perdida, ou para uma forma de posicao menor no mesmo grupo)? */
+    private static boolean isDescent(String race, PlayerState old, String fg, String f, String sg, String st) {
+        if (!old.form.isEmpty() && f.isEmpty()) return true;
+        if (!old.stack.isEmpty() && st.isEmpty()) return true;
+        if (!f.isEmpty() && fg.equals(old.formGroup) && !f.equals(old.form)
+                && rank(race, fg, f, false) < rank(race, old.formGroup, old.form, false)) return true;
+        return !st.isEmpty() && sg.equals(old.stackGroup) && !st.equals(old.stack)
+                && rank(race, sg, st, true) < rank(race, old.stackGroup, old.stack, true);
+    }
+
+    private static int rank(String race, String group, String form, boolean stack) {
+        try {
+            FormConfig config = stack ? ConfigManager.getStackFormGroup(group) : ConfigManager.getFormGroup(race, group);
+            if (config == null) return -1;
+            int index = 0;
+            for (FormConfig.FormData data : config.getForms().values()) {
+                if (data.getName().equalsIgnoreCase(form)) return index;
+                index++;
+            }
+        } catch (RuntimeException ignored) {
+            // sem ordem conhecida
+        }
+        return -1;
     }
 
     /** Ticks desde a ultima transformacao deste jogador, ou {@link Long#MAX_VALUE}. */
