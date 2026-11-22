@@ -65,7 +65,18 @@ public final class ArmorBlender {
         ResourceLocation to = resolve(original, path, frame.to);
         if (from.equals(to)) return from;
 
-        int step = Math.round(frame.progress * STEPS);
+        float progress = frame.progress;
+        // A dissolucao sempre vai da roupa "cheia" (com camisa) para a "vazia" (sem camisa), de cima para baixo, seja a
+        // transformacao lenta ou a instantanea (nesta o DMZ entrega o par ao contrario). Na volta, o mesmo caminho ao contrario.
+        if (density(to) > density(from)) {
+            ResourceLocation swap = from;
+            from = to;
+            to = swap;
+            progress = 1.0f - progress;
+        }
+
+        int step = Math.round(progress * STEPS);
+        DissolveParticles.note(player, from, progress);
         if (step <= 0) return from;
         if (step >= STEPS) return to;
         return blended(from, to, step);
@@ -84,6 +95,27 @@ public final class ArmorBlender {
         return ssj4 && SsjArmorConfig.FADE_SLEEVES.get() ? armless(original) : original;
     }
 
+    private static final Map<ResourceLocation, Integer> DENSITY = new HashMap<>();
+
+    /** Quantos pixels opacos a textura tem (a mais "cheia" e a que tem a camisa). */
+    private static int density(ResourceLocation location) {
+        Integer cached = DENSITY.get(location);
+        if (cached != null) return cached;
+        if (!RenderSystem.isOnRenderThread()) return 0;
+        int count = 0;
+        try (NativeImage image = read(location)) {
+            for (int y = 0; y < image.getHeight(); y++) {
+                for (int x = 0; x < image.getWidth(); x++) {
+                    if (((image.getPixelRGBA(x, y) >>> 24) & 0xFF) != 0) count++;
+                }
+            }
+        } catch (Exception e) {
+            // nao conseguiu ler: conta como 0 e nao tenta de novo
+        }
+        DENSITY.put(location, count);
+        return count;
+    }
+
     /** Chamado quando os resource packs recarregam: descarta caches e texturas geradas. */
     public static void clear() {
         TextureManager textures = Minecraft.getInstance().getTextureManager();
@@ -93,9 +125,11 @@ public final class ArmorBlender {
         DYNAMIC_TEXTURES.clear();
         BLENDS.clear();
         ARMLESS.clear();
+        DENSITY.clear();
         VARIANT_EXISTS.clear();
         FAILED.clear();
         FadeTracker.clear();
+        DissolveParticles.clear();
         ArmorContext.reset();
     }
 
@@ -178,7 +212,7 @@ public final class ArmorBlender {
                 for (int x = 0; x < width; x++) {
                     int a = from.getPixelRGBA(x * fromWidth / width, y * fromHeight / height);
                     int b = to.getPixelRGBA(x, y);
-                    output.setPixelRGBA(x, y, mix(a, b, t, threshold(x, y * 64 / height), hem(y * 64 / height)));
+                    output.setPixelRGBA(x, y, mix(a, b, t, threshold(x, y * 64 / height), hem(x * 64 / width, y * 64 / height)));
                 }
             }
 
@@ -199,7 +233,7 @@ public final class ArmorBlender {
         }
     }
 
-    private static NativeImage read(ResourceLocation location) throws IOException {
+    static NativeImage read(ResourceLocation location) throws IOException {
         try (InputStream in = Minecraft.getInstance().getResourceManager().open(location)) {
             return NativeImage.read(in);
         }
@@ -220,8 +254,8 @@ public final class ArmorBlender {
         int alphaB = (b >>> 24) & 0xFF;
 
         if (alphaA == 0 && alphaB == 0) return 0;
-        // Barra da peca (punho/munhequeira, barra da camisa e da calca): como a posicao dos pixels pode mudar de uma
-        // roupa para a outra, ela nao some e reaparece: a antiga fica ate o fim e a nova ja aparece no comeco.
+        // Punho do braco (munhequeira): como a posicao dos pixels pode mudar de uma roupa para a outra, ela nao some e
+        // reaparece: a antiga fica ate o fim e a nova ja aparece no comeco.
         if (alphaB == 0) return (hem || threshold >= t) ? a : 0;   // so na roupa antiga: some quando t passa do limiar
         if (alphaA == 0) return (hem || threshold < t) ? b : 0;    // so na roupa da forma: aparece quando t passa do limiar
 
@@ -247,9 +281,9 @@ public final class ArmorBlender {
         return Math.min(1.0f, 0.78f * s + 0.22f * noise);
     }
 
-    /** Linhas de baixo (12 a 15 dentro do bloco de 16) das pecas: punhos e barras. */
-    private static boolean hem(int y) {
-        return y >= 16 && (y & 15) >= 12;
+    /** Punho do braco (4 linhas de baixo dos bracos): so ali, a munhequeira nao some e reaparece. A camisa nao entra. */
+    private static boolean hem(int x, int y) {
+        return y >= 16 && (y & 15) >= 12 && insideArm(x, y);
     }
 
     /** Ruido fixo (0..1) por pixel, espalhado de forma irregular. */

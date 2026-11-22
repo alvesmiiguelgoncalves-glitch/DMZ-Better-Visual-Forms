@@ -32,6 +32,7 @@ public final class SsjArmorConfig {
     public static final ForgeConfigSpec SPEC;
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.BooleanValue FADE_SLEEVES;
+    public static final ForgeConfigSpec.BooleanValue DISSOLVE_PARTICLES;
     public static final ForgeConfigSpec.EnumValue<AuraStateMode> AURA_STATE;
     public static final ForgeConfigSpec.IntValue AURA_TEMP_SECONDS;
     public static final ForgeConfigSpec.EnumValue<RayMode> RAYS;
@@ -46,8 +47,12 @@ public final class SsjArmorConfig {
                 .define("enabled", true);
 
         FADE_SLEEVES = builder
-                .comment("Formas 'buffed' (ex.: SSJ Full Power): a manga da roupa some junto com a transformacao, em vez de sumir de uma vez no fim.")
+                .comment("SSJ4 (GT e Daima): se a pasta de texturas da forma nao tiver a manga, ela some junto com a transformacao em vez de sumir de uma vez no fim.")
                 .define("fadeSleeves", true);
+
+        DISSOLVE_PARTICLES = builder
+                .comment("Solta particulas de pixels da roupa enquanto ela se desfaz na transformacao.")
+                .define("dissolveParticles", true);
 
         AURA_STATE = builder
                 .comment("Estado de Aura ao Transformar.",

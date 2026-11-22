@@ -62,8 +62,10 @@ Prioridade: combinação > forma > stack.
 }
 ```
 
-**Mangas**: nas formas "buffed" (ex.: SSJ Full Power) o DMZ não desenha a manga da roupa; o addon faz a manga sumir junto com a transformação (`fadeSleeves` no toml).
-A camisa e as mangas somem de cima para baixo.
+**Mangas**: nas formas "buffed" (ex.: SSJ Full Power) a roupa original do DMZ é mantida, com manga e munhequeira. Só o SSJ4 (GT e Daima) tira a manga junto com a transformação quando a pasta da forma não tem manga (`fadeSleeves` no toml).
+A camisa e as mangas somem de cima para baixo (na transformação lenta e na instantânea) e saem partículas de pixels da roupa enquanto ela se desfaz (`dissolveParticles` no toml).
+
+**Roupa "gorda" na transição**: durante a mudança de modelo do DMZ, a inflação das peças usa o maior cubo do osso (e não o primeiro), para a camisa não ficar maior que o resto. Fora da transição nada muda.
 
 `true` = automático (pasta `ssj4d` ou `ssj4gt` pelo modelo; formas sem modelo SSJ4 ficam como estão), `false` = não troca, `"nome"` = usa a pasta `armor/nome/`. O arquivo é relido quando salva.
 
