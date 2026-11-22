@@ -6,7 +6,6 @@ import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
@@ -14,7 +13,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,6 +37,7 @@ public final class DissolveParticles {
     private static final Map<Integer, Note> NOTES = new HashMap<>();
     private static final Map<ResourceLocation, int[]> PALETTES = new HashMap<>();
     private static final RandomSource RANDOM = RandomSource.create();
+
 
     private DissolveParticles() {
     }
@@ -104,10 +103,10 @@ public final class DissolveParticles {
             double x = player.getX() + localX * cos - localZ * sin;
             double z = player.getZ() + localX * sin + localZ * cos;
             double y = player.getY() + height * yFraction;
-            Vector3f color = new Vector3f(((rgb >> 16) & 0xFF) / 255.0f, ((rgb >> 8) & 0xFF) / 255.0f, (rgb & 0xFF) / 255.0f);
             double outward = 0.02 + RANDOM.nextFloat() * 0.03;
-            level.addParticle(new DustParticleOptions(color, 0.7f), x, y, z,
-                    (localX * cos - localZ * sin) * outward * 6.0, 0.02 + RANDOM.nextFloat() * 0.04, (localX * sin + localZ * cos) * outward * 6.0);
+            Minecraft.getInstance().particleEngine.add(new PixelParticle(level, x, y, z,
+                    (localX * cos - localZ * sin) * outward * 3.0, 0.0, (localX * sin + localZ * cos) * outward * 3.0,
+                    rgb, RANDOM));
         }
     }
 

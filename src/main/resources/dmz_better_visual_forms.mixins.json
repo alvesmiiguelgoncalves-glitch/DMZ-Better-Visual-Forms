@@ -28,7 +28,7 @@
     "ConfigMenuScreenMixin",
     "StatusMixin",
     "AuraFxStateMixin",
-    "ArmorPieceInflationMixin"
+    "PlayerArmorFitMixin"
   ],
   "server": [],
   "injectors": {
