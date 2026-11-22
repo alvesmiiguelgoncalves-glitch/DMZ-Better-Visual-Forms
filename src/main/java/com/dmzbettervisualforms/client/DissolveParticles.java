@@ -32,6 +32,7 @@ public final class DissolveParticles {
         float progress;
         float lastSpawned = -1.0f;
         long tick;
+        boolean rising;
     }
 
     private static final Map<Integer, Note> NOTES = new HashMap<>();
@@ -57,6 +58,9 @@ public final class DissolveParticles {
         PALETTES.clear();
     }
 
+    /** Total aproximado de particulas por dissolucao completa (a quantidade por tick segue o avanco da dissolucao). */
+    private static final float PARTICLES_PER_DISSOLVE = 220.0f;
+
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -68,26 +72,37 @@ public final class DissolveParticles {
         long now = level.getGameTime();
         for (Map.Entry<Integer, Note> entry : NOTES.entrySet()) {
             Note note = entry.getValue();
-            if (now - note.tick > 2) {          // parou a transicao (nao e mais desenhado com mistura)
+            if (!(level.getEntity(entry.getKey()) instanceof Player player)) continue;
+
+            if (now - note.tick > 2) {
+                // A transicao acabou (a transformacao instantanea pode terminar de um quadro para o outro): solta o que faltou
+                if (note.lastSpawned >= 0.0f && note.rising && note.lastSpawned > 0.5f && note.lastSpawned < 1.0f) {
+                    emit(level, player, note, 1.0f - note.lastSpawned, 1.0f);
+                }
                 note.lastSpawned = -1.0f;
+                note.rising = false;
                 continue;
             }
-            if (note.progress <= 0.0f || note.progress >= 1.0f) {
-                note.lastSpawned = note.progress;
-                continue;
+            if (note.lastSpawned < 0.0f) {
+                // a dissolucao comeca em 0; se o primeiro quadro ja vem perto de 1 e a roupa que esta VOLTANDO, nao ha o que soltar
+                note.lastSpawned = note.progress < 0.5f ? 0.0f : note.progress;
             }
-            if (note.lastSpawned < 0.0f) note.lastSpawned = note.progress;
             float delta = note.progress - note.lastSpawned;
             note.lastSpawned = note.progress;
-            if (delta <= 0.0f) continue;        // so quando a roupa esta SUMINDO (na volta ela aparece, sem particulas)
-
-            if (!(level.getEntity(entry.getKey()) instanceof Player player)) continue;
-            int[] palette = palette(note.texture);
-            if (palette.length == 0) continue;
-
-            int count = Math.max(1, Math.min(10, Math.round(delta * 80.0f)));
-            spawn(level, player, palette, note.progress, count);
+            if (delta <= 0.0f) {                // so quando a roupa esta SUMINDO (na volta ela aparece, sem particulas)
+                note.rising = false;
+                continue;
+            }
+            note.rising = true;
+            emit(level, player, note, delta, note.progress);
         }
+    }
+
+    private static void emit(ClientLevel level, Player player, Note note, float delta, float progress) {
+        int[] palette = palette(note.texture);
+        if (palette.length == 0) return;
+        int count = Math.max(1, Math.min(40, Math.round(delta * PARTICLES_PER_DISSOLVE)));
+        spawn(level, player, palette, progress, count);
     }
 
     private static void spawn(ClientLevel level, Player player, int[] palette, float progress, int count) {
@@ -97,16 +112,20 @@ public final class DissolveParticles {
         float cos = (float) Math.cos(yaw);
         for (int i = 0; i < count; i++) {
             int rgb = palette[RANDOM.nextInt(palette.length)];
-            float yFraction = 0.85f - 0.6f * progress + (RANDOM.nextFloat() - 0.3f) * 0.18f;
-            double localX = (RANDOM.nextFloat() - 0.5f) * 0.6f;
+            float yFraction = 0.85f - 0.6f * progress + (RANDOM.nextFloat() - 0.3f) * 0.25f;
+            double side = RANDOM.nextBoolean() ? 1.0 : -1.0;
+            double localX = side * (0.1 + RANDOM.nextFloat() * 0.3);
             double localZ = (RANDOM.nextFloat() - 0.5f) * 0.3f;
+            // sai para os lados (eixo X do corpo), com um pouco de variacao para frente/tras e para cima; depois cai
+            double speed = 0.04 + RANDOM.nextFloat() * 0.14;
+            double velX = side * speed * (0.6 + 0.4 * RANDOM.nextFloat());
+            double velZ = (RANDOM.nextFloat() - 0.5f) * speed * 0.8;
+            double velY = RANDOM.nextFloat() * 0.08;
             double x = player.getX() + localX * cos - localZ * sin;
             double z = player.getZ() + localX * sin + localZ * cos;
             double y = player.getY() + height * yFraction;
-            double outward = 0.02 + RANDOM.nextFloat() * 0.03;
             Minecraft.getInstance().particleEngine.add(new PixelParticle(level, x, y, z,
-                    (localX * cos - localZ * sin) * outward * 3.0, 0.0, (localX * sin + localZ * cos) * outward * 3.0,
-                    rgb, RANDOM));
+                    velX * cos - velZ * sin, velY, velX * sin + velZ * cos, rgb, RANDOM));
         }
     }
 

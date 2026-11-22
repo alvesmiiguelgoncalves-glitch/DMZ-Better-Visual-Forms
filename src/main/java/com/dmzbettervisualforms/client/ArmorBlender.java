@@ -76,10 +76,15 @@ public final class ArmorBlender {
         }
 
         int step = Math.round(progress * STEPS);
-        DissolveParticles.note(player, from, progress);
+        // particulas so nas formas SSJ4 GT e Daima (as outras trocas de roupa se desfazem sem particulas)
+        if (isSsj4(frame.from) || isSsj4(frame.to)) DissolveParticles.note(player, from, progress);
         if (step <= 0) return from;
         if (step >= STEPS) return to;
         return blended(from, to, step);
+    }
+
+    private static boolean isSsj4(@Nullable String profile) {
+        return FormMatcher.SSJ4_GT.equals(profile) || FormMatcher.SSJ4_DAIMA.equals(profile);
     }
 
     /** Textura do perfil para esta peca; se o perfil nao tem a peca, vale a original do DMZ. */

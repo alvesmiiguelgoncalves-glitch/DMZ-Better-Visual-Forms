@@ -27,8 +27,7 @@
     "StrandColorMixin",
     "ConfigMenuScreenMixin",
     "StatusMixin",
-    "AuraFxStateMixin",
-    "PlayerArmorFitMixin"
+    "AuraFxStateMixin"
   ],
   "server": [],
   "injectors": {
