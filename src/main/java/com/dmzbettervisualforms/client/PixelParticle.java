@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.Blocks;
  */
 final class PixelParticle extends TextureSheetParticle {
 
-    PixelParticle(ClientLevel level, double x, double y, double z, double vx, double vy, double vz, int rgb, RandomSource random) {
+    PixelParticle(ClientLevel level, double x, double y, double z, double vx, double vy, double vz, int rgb, float size, RandomSource random) {
         super(level, x, y, z);
         TextureAtlasSprite sprite = Minecraft.getInstance().getBlockRenderer().getBlockModelShaper()
                 .getParticleIcon(Blocks.WHITE_CONCRETE.defaultBlockState());
@@ -24,7 +24,7 @@ final class PixelParticle extends TextureSheetParticle {
         this.zd = vz;
         this.gravity = 1.0f;
         this.hasPhysics = true;
-        this.quadSize = 0.028f + random.nextFloat() * 0.01f;   // lado = 2 * quadSize, ~1 pixel de textura (1/16 de bloco)
+        this.quadSize = size * 0.5f;   // quadSize e a metade do lado; size = 1 pixel de armadura (1/16 de bloco, na escala do jogador)
         this.lifetime = 40 + random.nextInt(40);
         this.rCol = ((rgb >> 16) & 0xFF) / 255.0f;
         this.gCol = ((rgb >> 8) & 0xFF) / 255.0f;

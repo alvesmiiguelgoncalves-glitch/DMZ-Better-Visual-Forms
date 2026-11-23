@@ -16,147 +16,206 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Particulas de pixels da roupa enquanto ela se desfaz. O {@link ArmorBlender} avisa, a cada quadro, qual textura esta
- * se desfazendo e em que ponto da dissolucao ela esta ({@link #note}); a cada tick, se a dissolucao avancou, saem particulas
- * com as cores dessa textura, numa faixa que desce do peito para os pes junto com a roupa.
+ * Particulas de pixels da roupa que se desfaz. Cada pixel que some da textura solta uma particula de 1 pixel, na posicao do
+ * proprio pixel no corpo (via {@link PixelMapper}), com a cor dele, que sai para fora do corpo e cai no chao.
+ *
+ * <p>O {@link ArmorBlender} avisa a cada quadro (thread de render) qual par de texturas esta se misturando e em que ponto
+ * ({@link #note}). Como cada pixel some em um passo conhecido (o mesmo limiar da mistura), basta soltar, a cada passo novo,
+ * os pixels que sumiram nele. Isso vale para a transformacao lenta e para a instantanea, que pode pular varios passos de
+ * um quadro para o outro.</p>
  */
 @Mod.EventBusSubscriber(modid = DmzBetterVisualForms.MOD_ID, value = Dist.CLIENT)
 public final class DissolveParticles {
 
-    private static final class Note {
-        ResourceLocation texture;
-        float progress;
-        float lastSpawned = -1.0f;
-        long tick;
-        boolean rising;
+    private record Key(int player, ResourceLocation from) {
     }
 
-    private static final Map<Integer, Note> NOTES = new HashMap<>();
-    private static final Map<ResourceLocation, int[]> PALETTES = new HashMap<>();
-    private static final RandomSource RANDOM = RandomSource.create();
+    private static final class Note {
+        ResourceLocation from;
+        ResourceLocation to;
+        int lastStep = -1;
+        boolean rising;
+        long tick;
+    }
 
+    /** Pixels que somem na mistura {@code from -> to}: passo em que somem, posicao no corpo (lateral, altura, frente) e cor. */
+    private record Burst(int[] step, float[] lateral, float[] height, float[] front, int[] rgb) {
+        int size() {
+            return step.length;
+        }
+    }
+
+    private static final Map<Key, Note> NOTES = new HashMap<>();
+    private static final Map<String, Burst> BURSTS = new HashMap<>();
+    private static final RandomSource RANDOM = RandomSource.create();
+    private static final Burst EMPTY = new Burst(new int[0], new float[0], new float[0], new float[0], new int[0]);
 
     private DissolveParticles() {
     }
 
-    /** Chamado pelo render (thread do cliente): {@code progress} 0 = roupa inteira, 1 = toda desfeita. */
-    static void note(AbstractClientPlayer player, ResourceLocation texture, float progress) {
+    /**
+     * Chamado pelo render a cada peca de roupa que esta se desfazendo.
+     *
+     * @param progress 0 = roupa inteira (com camisa), 1 = toda desfeita
+     */
+    static void note(AbstractClientPlayer player, ResourceLocation from, ResourceLocation to, float progress) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return;
-        Note note = NOTES.computeIfAbsent(player.getId(), id -> new Note());
-        note.texture = texture;
-        note.progress = progress;
-        note.tick = mc.level.getGameTime();
+        ClientLevel level = mc.level;
+        if (level == null) return;
+        if (!SsjArmorConfig.ENABLED.get() || !SsjArmorConfig.DISSOLVE_PARTICLES.get()) return;
+
+        Note note = NOTES.computeIfAbsent(new Key(player.getId(), from), key -> new Note());
+        note.from = from;
+        note.to = to;
+        note.tick = level.getGameTime();
+
+        int step = Math.round(progress * ArmorBlender.STEPS);
+        // a dissolucao comeca em 0; se o primeiro quadro ja vem perto do fim, a roupa esta VOLTANDO: nada a soltar
+        if (note.lastStep < 0) note.lastStep = progress < 0.5f ? 0 : step;
+        if (step > note.lastStep) {
+            emit(level, player, note, note.lastStep, step);
+            note.lastStep = step;
+            note.rising = true;
+        } else if (step < note.lastStep) {
+            note.lastStep = step;
+            note.rising = false;
+        }
     }
 
     static void clear() {
         NOTES.clear();
-        PALETTES.clear();
+        BURSTS.clear();
     }
-
-    /** Total aproximado de particulas por dissolucao completa (a quantidade por tick segue o avanco da dissolucao). */
-    private static final float PARTICLES_PER_DISSOLVE = 220.0f;
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getInstance();
         ClientLevel level = mc.level;
-        if (level == null || mc.isPaused()) return;
-        if (!SsjArmorConfig.ENABLED.get() || !SsjArmorConfig.DISSOLVE_PARTICLES.get()) return;
+        if (level == null) {
+            NOTES.clear();
+            return;
+        }
+        if (mc.isPaused()) return;
 
         long now = level.getGameTime();
-        for (Map.Entry<Integer, Note> entry : NOTES.entrySet()) {
+        Iterator<Map.Entry<Key, Note>> it = NOTES.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Key, Note> entry = it.next();
             Note note = entry.getValue();
-            if (!(level.getEntity(entry.getKey()) instanceof Player player)) continue;
-
-            if (now - note.tick > 2) {
-                // A transicao acabou (a transformacao instantanea pode terminar de um quadro para o outro): solta o que faltou
-                if (note.lastSpawned >= 0.0f && note.rising && note.lastSpawned > 0.5f && note.lastSpawned < 1.0f) {
-                    emit(level, player, note, 1.0f - note.lastSpawned, 1.0f);
-                }
-                note.lastSpawned = -1.0f;
-                note.rising = false;
-                continue;
+            if (now - note.tick <= 2) continue;
+            // A transicao acabou (a instantanea pode terminar de um quadro para o outro): solta o que faltou
+            if (note.rising && note.lastStep >= ArmorBlender.STEPS / 2 && note.lastStep < ArmorBlender.STEPS
+                    && level.getEntity(entry.getKey().player()) instanceof Player player) {
+                emit(level, player, note, note.lastStep, ArmorBlender.STEPS);
             }
-            if (note.lastSpawned < 0.0f) {
-                // a dissolucao comeca em 0; se o primeiro quadro ja vem perto de 1 e a roupa que esta VOLTANDO, nao ha o que soltar
-                note.lastSpawned = note.progress < 0.5f ? 0.0f : note.progress;
-            }
-            float delta = note.progress - note.lastSpawned;
-            note.lastSpawned = note.progress;
-            if (delta <= 0.0f) {                // so quando a roupa esta SUMINDO (na volta ela aparece, sem particulas)
-                note.rising = false;
-                continue;
-            }
-            note.rising = true;
-            emit(level, player, note, delta, note.progress);
+            it.remove();
         }
     }
 
-    private static void emit(ClientLevel level, Player player, Note note, float delta, float progress) {
-        int[] palette = palette(note.texture);
-        if (palette.length == 0) return;
-        int count = Math.max(1, Math.min(40, Math.round(delta * PARTICLES_PER_DISSOLVE)));
-        spawn(level, player, palette, progress, count);
-    }
+    /** Solta as particulas dos pixels que somem nos passos {@code (after, upTo]}. */
+    private static void emit(ClientLevel level, Player player, Note note, int after, int upTo) {
+        Burst burst = burst(note.from, note.to);
+        if (burst.size() == 0) return;
 
-    private static void spawn(ClientLevel level, Player player, int[] palette, float progress, int count) {
-        float height = player.getBbHeight();
-        float yaw = (float) Math.toRadians(player.yBodyRot);
-        float sin = (float) Math.sin(yaw);
-        float cos = (float) Math.cos(yaw);
-        for (int i = 0; i < count; i++) {
-            int rgb = palette[RANDOM.nextInt(palette.length)];
-            float yFraction = 0.85f - 0.6f * progress + (RANDOM.nextFloat() - 0.3f) * 0.25f;
-            double side = RANDOM.nextBoolean() ? 1.0 : -1.0;
-            double localX = side * (0.1 + RANDOM.nextFloat() * 0.3);
-            double localZ = (RANDOM.nextFloat() - 0.5f) * 0.3f;
-            // sai para os lados (eixo X do corpo), com um pouco de variacao para frente/tras e para cima; depois cai
-            double speed = 0.04 + RANDOM.nextFloat() * 0.14;
-            double velX = side * speed * (0.6 + 0.4 * RANDOM.nextFloat());
-            double velZ = (RANDOM.nextFloat() - 0.5f) * speed * 0.8;
-            double velY = RANDOM.nextFloat() * 0.08;
-            double x = player.getX() + localX * cos - localZ * sin;
-            double z = player.getZ() + localX * sin + localZ * cos;
-            double y = player.getY() + height * yFraction;
-            Minecraft.getInstance().particleEngine.add(new PixelParticle(level, x, y, z,
-                    velX * cos - velZ * sin, velY, velX * sin + velZ * cos, rgb, RANDOM));
+        float keep = Math.min(1.0f, SsjArmorConfig.DISSOLVE_PARTICLE_COUNT.get() / (float) burst.size());
+        float scale = player.getBbHeight() / 1.8f;
+        float pixel = scale / 16.0f;
+        double yaw = Math.toRadians(player.yBodyRot);
+        double sin = Math.sin(yaw);
+        double cos = Math.cos(yaw);
+        // frente = (-sin, cos); direita do jogador = (-cos, -sin)
+        for (int i = 0; i < burst.size(); i++) {
+            int step = burst.step()[i];
+            if (step <= after || step > upTo) continue;
+            if (keep < 1.0f && RANDOM.nextFloat() >= keep) continue;
+
+            double lat = burst.lateral()[i] * pixel;
+            double front = burst.front()[i] * pixel;
+            double x = player.getX() + (-cos) * lat + (-sin) * front;
+            double z = player.getZ() + (-sin) * lat + cos * front;
+            double y = player.getY() + burst.height()[i] * pixel;
+            // um empurrao para fora do corpo e um pouco para cima; depois cai
+            double out = 0.03 + RANDOM.nextDouble() * 0.04;
+            double vx = (x - player.getX()) * out * 8.0 + (RANDOM.nextDouble() - 0.5) * 0.03;
+            double vz = (z - player.getZ()) * out * 8.0 + (RANDOM.nextDouble() - 0.5) * 0.03;
+            double vy = 0.02 + RANDOM.nextDouble() * 0.06;
+            Minecraft.getInstance().particleEngine.add(new PixelParticle(level, x, y, z, vx, vy, vz, burst.rgb()[i], pixel, RANDOM));
         }
     }
 
-    /** Cores (RGB) da textura que esta se desfazendo, tiradas da frente do tronco e dos bracos. */
-    private static int[] palette(ResourceLocation texture) {
-        int[] cached = PALETTES.get(texture);
+    private static Burst burst(ResourceLocation from, ResourceLocation to) {
+        String key = from + "|" + to;
+        Burst cached = BURSTS.get(key);
         if (cached != null) return cached;
-        List<Integer> colors = new ArrayList<>();
-        try (NativeImage image = ArmorBlender.read(texture)) {
-            int w = image.getWidth();
-            int h = image.getHeight();
-            // frente do tronco (20,20)-(27,31) e braco (44,20)-(47,31) num layout de 64x64
-            int[][] rects = {{20, 20, 8, 12}, {44, 20, 4, 12}};
-            for (int[] r : rects) {
-                for (int y = r[1]; y < r[1] + r[3]; y++) {
-                    for (int x = r[0]; x < r[0] + r[2]; x++) {
-                        int px = image.getPixelRGBA(Math.min(w - 1, x * w / 64), Math.min(h - 1, y * h / 64));
-                        if (((px >>> 24) & 0xFF) < 128) continue;
-                        int red = px & 0xFF;
-                        int green = (px >>> 8) & 0xFF;
-                        int blue = (px >>> 16) & 0xFF;
-                        colors.add((red << 16) | (green << 8) | blue);
-                    }
-                }
+
+        Burst result = EMPTY;
+        try (NativeImage a = ArmorBlender.read(from)) {
+            NativeImage b = null;
+            try {
+                b = ArmorBlender.read(to);   // texturas geradas (sem manga) nao estao nos resource packs: contam como vazias
+            } catch (Exception ignored) {
+                // sem a textura de destino
+            }
+            try {
+                result = compute(a, b);
+            } finally {
+                if (b != null) b.close();
             }
         } catch (Exception e) {
-            // textura ilegivel: sem particulas para ela
+            DmzBetterVisualForms.LOGGER.warn("Nao foi possivel preparar as particulas de {}.", from, e);
         }
-        int[] palette = new int[colors.size()];
-        for (int i = 0; i < palette.length; i++) palette[i] = colors.get(i);
-        PALETTES.put(texture, palette);
-        return palette;
+        BURSTS.put(key, result);
+        return result;
+    }
+
+    private static Burst compute(NativeImage a, NativeImage b) {
+        int w = a.getWidth();
+        int h = a.getHeight();
+        List<float[]> found = new ArrayList<>();
+        List<Integer> steps = new ArrayList<>();
+        List<Integer> colors = new ArrayList<>();
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int pixel = a.getPixelRGBA(x, y);
+                if (((pixel >>> 24) & 0xFF) == 0) continue;
+                if (b != null && ((b.getPixelRGBA(x * b.getWidth() / w, y * b.getHeight() / h) >>> 24) & 0xFF) != 0) continue; // fica nas duas: so troca de cor
+                int px = x * 64 / w;
+                int py = y * 64 / h;
+                float[] position = PixelMapper.map(px, py);
+                if (position == null) continue;   // fora das pecas conhecidas (camada de fora etc.)
+
+                // mesmo criterio da mistura: pixel so da roupa antiga some no primeiro passo k com k/STEPS > limiar
+                float threshold = ArmorBlender.threshold(x, py);
+                int step = (ArmorBlender.hem(px, py) || threshold >= 1.0f)
+                        ? ArmorBlender.STEPS
+                        : Math.min(ArmorBlender.STEPS, (int) Math.floor(threshold * ArmorBlender.STEPS) + 1);
+                found.add(position);
+                steps.add(step);
+                colors.add(pixel);
+            }
+        }
+        int n = found.size();
+        if (n == 0) return EMPTY;
+        int[] stepArray = new int[n];
+        float[] lateral = new float[n];
+        float[] height = new float[n];
+        float[] front = new float[n];
+        int[] rgb = new int[n];
+        for (int i = 0; i < n; i++) {
+            stepArray[i] = steps.get(i);
+            lateral[i] = found.get(i)[0];
+            height[i] = found.get(i)[1];
+            front[i] = found.get(i)[2];
+            int c = colors.get(i);
+            // ABGR -> 0xRRGGBB
+            rgb[i] = ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >>> 16) & 0xFF);
+        }
+        return new Burst(stepArray, lateral, height, front, rgb);
     }
 }

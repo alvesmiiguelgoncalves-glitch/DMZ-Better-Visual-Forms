@@ -33,6 +33,7 @@ public final class SsjArmorConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.BooleanValue FADE_SLEEVES;
     public static final ForgeConfigSpec.BooleanValue DISSOLVE_PARTICLES;
+    public static final ForgeConfigSpec.IntValue DISSOLVE_PARTICLE_COUNT;
     public static final ForgeConfigSpec.EnumValue<AuraStateMode> AURA_STATE;
     public static final ForgeConfigSpec.IntValue AURA_TEMP_SECONDS;
     public static final ForgeConfigSpec.EnumValue<RayMode> RAYS;
@@ -53,6 +54,10 @@ public final class SsjArmorConfig {
         DISSOLVE_PARTICLES = builder
                 .comment("Solta particulas de 1 pixel (cor exata, caem no chao) da roupa enquanto ela se desfaz na transformacao.")
                 .define("dissolveParticles", true);
+
+        DISSOLVE_PARTICLE_COUNT = builder
+                .comment("Quantas particulas saem, no maximo, em cada dissolucao completa da roupa.")
+                .defineInRange("dissolveParticleCount", 20, 1, 1000);
 
         AURA_STATE = builder
                 .comment("Estado de Aura ao Transformar.",

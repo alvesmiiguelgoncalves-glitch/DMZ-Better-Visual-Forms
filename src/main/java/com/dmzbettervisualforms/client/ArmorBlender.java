@@ -77,7 +77,7 @@ public final class ArmorBlender {
 
         int step = Math.round(progress * STEPS);
         // particulas so nas formas SSJ4 GT e Daima (as outras trocas de roupa se desfazem sem particulas)
-        if (isSsj4(frame.from) || isSsj4(frame.to)) DissolveParticles.note(player, from, progress);
+        if (isSsj4(frame.from) || isSsj4(frame.to)) DissolveParticles.note(player, from, to, progress);
         if (step <= 0) return from;
         if (step >= STEPS) return to;
         return blended(from, to, step);
@@ -279,7 +279,7 @@ public final class ArmorBlender {
      * de skin de 64 px onde cada peca tem linhas de 4 a 15 dentro do bloco de 16) com um pouco de ruido,
      * para nao ficar uma linha reta. Linhas fora das pecas (cabeca etc.) usam so o ruido.
      */
-    private static float threshold(int x, int y) {
+    static float threshold(int x, int y) {
         float noise = noise(x, y);
         if (y < 16) return noise;
         float s = Math.max(0.0f, Math.min(1.0f, ((y & 15) - 4) / 11.0f));
@@ -287,7 +287,7 @@ public final class ArmorBlender {
     }
 
     /** Punho do braco (4 linhas de baixo dos bracos): so ali, a munhequeira nao some e reaparece. A camisa nao entra. */
-    private static boolean hem(int x, int y) {
+    static boolean hem(int x, int y) {
         return y >= 16 && (y & 15) >= 12 && insideArm(x, y);
     }
 
