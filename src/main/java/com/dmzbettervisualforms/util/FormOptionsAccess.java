@@ -46,6 +46,10 @@ public interface FormOptionsAccess {
     /** Default true. */
     boolean dmzfo$chargeKiAnimation();
 
+    /** {@code true}/{@code false} = force angular eyes on/off (DMZ Blink); {@code null} = automatic (decided by the hair type). */
+    @Nullable
+    Boolean dmzfo$angularEyes();
+
     /**
      * A cached copy of this form with another tint: {@code color} null/empty keeps the form's own tintColor,
      * {@code intensity} negative keeps the form's own tintIntensity. Null if the copy failed.

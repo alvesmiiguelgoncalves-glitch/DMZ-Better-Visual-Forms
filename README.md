@@ -82,6 +82,7 @@ A camisa e as mangas somem de cima para baixo (na transformação lenta e na ins
 | `stackOutlineColorMode` | texto / `""` | Vale na forma **base**. `"pulse"` ou `"gradient"` para o outline da forma empilhável. `""` = usa o modo do próprio outline da empilhável. |
 | `scleraColor` | texto / `""` | Cor da esclera (parte branca do olho), por exemplo `"#FFFFFF"`. Vazio = cor padrão do jogo. |
 | `noEyebrows` | boolean / `false` | Esconde as sobrancelhas: não desenha a camada de sobrancelha e usa a textura `ssj3eyebrows_eye_N` do DMZ (a do SSJ3) por cima, escolhida pelo tipo de olho do jogador. |
+| `angularEyes` | `"auto"` / `true` / `false` | Só com o mod **DMZ Blink** (DMZ Face Animations) instalado. `true` força os olhos angulares na forma (ex.: Kaioken, MUI, que usam o cabelo base); `false` tira os olhos angulares (ex.: SSJ dominado); `"auto"` (padrão) deixa o Blink decidir pelo cabelo (`ssj`, `ssj2`, `ssj3`, `ssj4`). Numa forma stack, o valor da stack vale mais que o da forma base. |
 | `eyeliner` | boolean / `false` | Desenha o delineado nos olhos (usa a textura `ssj4_eyes_N` do DMZ, escolhida pelo tipo de olho do jogador). |
 | `eyelinerColor` | texto / `"#000000"` | Cor do delineado. |
 | `chargeKiAnimation` | boolean / `true` | Com `false`, o jogador **não** faz a pose de carregar ki: fica parado (idle) enquanto a aura carrega. |

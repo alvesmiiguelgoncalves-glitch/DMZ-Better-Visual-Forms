@@ -36,6 +36,8 @@ public abstract class FormDataMixin implements FormOptionsAccess {
     @Unique private Boolean eyeliner = false;
     @Unique private String eyelinerColor = "#000000";
     @Unique private Boolean chargeKiAnimation = true;
+    /** "auto" (default: the DMZ Blink mod decides by the hair type), or true/false to force angular eyes on/off. */
+    @Unique private String angularEyes = "auto";
 
     // ---- caches (transient: never written to JSON) ----
     @Unique private transient float[] dmzfo$scleraRgbCache;
@@ -125,6 +127,15 @@ public abstract class FormDataMixin implements FormOptionsAccess {
     @Override
     public boolean dmzfo$chargeKiAnimation() {
         return chargeKiAnimation == null || chargeKiAnimation;
+    }
+
+    @Override
+    @Nullable
+    public Boolean dmzfo$angularEyes() {
+        String value = angularEyes == null ? "" : angularEyes.trim().toLowerCase(java.util.Locale.ROOT);
+        if (value.equals("true") || value.equals("yes") || value.equals("on")) return Boolean.TRUE;
+        if (value.equals("false") || value.equals("no") || value.equals("off")) return Boolean.FALSE;
+        return null;
     }
 
     @Override
