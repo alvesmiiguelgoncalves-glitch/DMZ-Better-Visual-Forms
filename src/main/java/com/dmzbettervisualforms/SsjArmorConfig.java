@@ -52,12 +52,12 @@ public final class SsjArmorConfig {
                 .define("fadeSleeves", true);
 
         DISSOLVE_PARTICLES = builder
-                .comment("Solta particulas de 1 pixel (cor exata, caem no chao) da roupa enquanto ela se desfaz na transformacao.")
+                .comment("Solta particulas de 1 a 3 pixels (cor exata, caem como folhas) da roupa enquanto ela se desfaz na transformacao.")
                 .define("dissolveParticles", true);
 
         DISSOLVE_PARTICLE_COUNT = builder
                 .comment("Quantas particulas saem, no maximo, em cada dissolucao completa da roupa.")
-                .defineInRange("dissolveParticleCount", 20, 1, 1000);
+                .defineInRange("dissolveParticleCount", 40, 1, 1000);
 
         AURA_STATE = builder
                 .comment("Estado de Aura ao Transformar.",

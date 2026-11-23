@@ -63,7 +63,7 @@ Prioridade: combinação > forma > stack.
 ```
 
 **Mangas**: nas formas "buffed" (ex.: SSJ Full Power) a roupa original do DMZ é mantida, com manga e munhequeira. Só o SSJ4 (GT e Daima) tira a manga junto com a transformação quando a pasta da forma não tem manga (`fadeSleeves` no toml).
-A camisa e as mangas somem de cima para baixo (na transformação lenta e na instantânea). No SSJ4 GT e no SSJ4 Daima, cada pixel que some solta uma partícula de 1 pixel, na posição dele no corpo e com a cor dele; ela sai para fora do corpo e cai no chão (`dissolveParticles` liga/desliga e `dissolveParticleCount` limita a quantidade, no toml).
+A camisa e as mangas somem de cima para baixo (na transformação lenta e na instantânea). No SSJ4 GT e no SSJ4 Daima, cada pixel que some solta uma partícula na posição dele no corpo e com a cor dele (às vezes juntas em formas de 2 ou 3 pixels, "I" e "L"); ela sai de leve para fora do corpo e cai balançando e girando, como folha, até o chão (`dissolveParticles` liga/desliga e `dissolveParticleCount` limita a quantidade, no toml).
 
 `true` = automático (pasta `ssj4d` ou `ssj4gt` pelo modelo; formas sem modelo SSJ4 ficam como estão), `false` = não troca, `"nome"` = usa a pasta `armor/nome/`. O arquivo é relido quando salva.
 

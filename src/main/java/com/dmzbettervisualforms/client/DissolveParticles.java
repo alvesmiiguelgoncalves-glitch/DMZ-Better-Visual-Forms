@@ -140,11 +140,10 @@ public final class DissolveParticles {
             double x = player.getX() + (-cos) * lat + (-sin) * front;
             double z = player.getZ() + (-sin) * lat + cos * front;
             double y = player.getY() + burst.height()[i] * pixel;
-            // um empurrao para fora do corpo e um pouco para cima; depois cai
-            double out = 0.03 + RANDOM.nextDouble() * 0.04;
-            double vx = (x - player.getX()) * out * 8.0 + (RANDOM.nextDouble() - 0.5) * 0.03;
-            double vz = (z - player.getZ()) * out * 8.0 + (RANDOM.nextDouble() - 0.5) * 0.03;
-            double vy = 0.02 + RANDOM.nextDouble() * 0.06;
+            // um empurraozinho para fora do corpo (a particula balanca e cai devagar, como folha)
+            double vx = (x - player.getX()) * 0.1 + (RANDOM.nextDouble() - 0.5) * 0.02;
+            double vz = (z - player.getZ()) * 0.1 + (RANDOM.nextDouble() - 0.5) * 0.02;
+            double vy = 0.01 + RANDOM.nextDouble() * 0.03;
             Minecraft.getInstance().particleEngine.add(new PixelParticle(level, x, y, z, vx, vy, vz, burst.rgb()[i], pixel, RANDOM));
         }
     }
