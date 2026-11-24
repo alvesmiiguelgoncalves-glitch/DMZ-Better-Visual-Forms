@@ -38,6 +38,9 @@ public abstract class FormDataMixin implements FormOptionsAccess {
     @Unique private Boolean chargeKiAnimation = true;
     /** "auto" (default: the DMZ Blink mod decides by the hair type), or true/false to force angular eyes on/off. */
     @Unique private String angularEyes = "auto";
+    /** Tint of hair, eyebrows and tail of THIS form (empty / -1 = the form's own tint, like stackTint*). */
+    @Unique private String hairTintColor = "";
+    @Unique private Double hairTintIntensity = -1.0;
 
     // ---- caches (transient: never written to JSON) ----
     @Unique private transient float[] dmzfo$scleraRgbCache;
@@ -45,6 +48,16 @@ public abstract class FormDataMixin implements FormOptionsAccess {
     @Unique private transient float[] dmzfo$eyelinerRgbCache;
     @Unique private transient String dmzfo$eyelinerRgbKey;
     @Unique private transient Map<String, FormConfig.FormData> dmzfo$tintVariants;
+
+    @Override
+    public String dmzfo$hairTintColor() {
+        return dmzfo$colorOrEmpty(hairTintColor);
+    }
+
+    @Override
+    public double dmzfo$hairTintIntensity() {
+        return hairTintIntensity == null ? -1.0 : hairTintIntensity;
+    }
 
     @Override
     public boolean dmzfo$forceTiedTail() {

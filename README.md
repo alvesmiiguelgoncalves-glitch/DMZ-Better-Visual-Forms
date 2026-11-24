@@ -20,6 +20,11 @@ Se for migrar, **remova** os jars antigos `dmz_ssj4_armors` e `dmz_form_options`
 
 F9 está livre.
 
+### Voltar direto à forma base
+
+- **Toque duplo** na tecla de destransformar do DMZ (a do seu Descend, ex.: H): volta direto à forma base e tira o stack. Liga/desliga em `revertDoubleTap`; o intervalo entre os toques é `revertDoubleTapMs` (350 ms).
+- Tecla **Voltar à Forma Base** (*Return to Base Form*) em Controles → DragonMine Z. Vem sem tecla; escolha a sua (ex.: Alt+H ou Alt+G).
+
 ## Menu Visuais do DMZ (Configurações)
 
 - **Estado de Aura ao Transformar**: *Desativado* (usa o do próprio jogo), *Temporário* (aura por ~10 s depois de transformar; `auraStateSeconds` no toml) ou *Sempre Ativo* (Estado de Aura ligado enquanto você está transformado). É só visual, no seu cliente.
@@ -171,3 +176,20 @@ Exemplo (na forma base):
 "stackOutlineThicknessMultiplicator": 2.0,
 "stackOutlineColorMode": "gradient"
 ```
+
+
+## Tint do cabelo, sobrancelha e cauda de uma forma (2.8.0)
+
+Em qualquer forma (comum ou stack) dá para mudar só o tint do cabelo, sobrancelha e cauda, igual ao `stackTint*`:
+
+```json
+"hairTintColor": "#FFD700",
+"hairTintIntensity": 0.6
+```
+
+Vazio (`""`) / `-1` = usa o tint da própria forma (o que ela já tem em `tintColor` / `tintIntensity`). `hairTintIntensity: 0` tira o tint do cabelo/cauda. O corpo continua com o tint normal da forma.
+
+## Oozaru: a roupa se rasga (2.8.0)
+
+Ao virar Oozaru a roupa inteira se desfaz (dissolve + pedacinhos caindo), exceto as armaduras saiyajins (lista `oozaruKeepClothes` no toml: bardock, broly, gine, king_vegeta, raditz, turles, vegeta_saiyan, vegetaz_armor, vegetanamek, vegetasuper). Desliga em `oozaruTearClothes`. Ao voltar, a roupa reaparece.
+Também: as partículas agora só saem da camisa (tronco e braços) nas formas SSJ4, e nunca ficam maiores que as de um jogador normal.

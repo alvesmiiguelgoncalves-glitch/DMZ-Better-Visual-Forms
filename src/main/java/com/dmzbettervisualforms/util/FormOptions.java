@@ -131,6 +131,41 @@ public final class FormOptions {
      */
     @Nullable
     public static FormConfig.FormData hairTailTint(StatsData stats, @Nullable FormConfig.FormData original) {
+        FormConfig.FormData result = stackHairTailTint(stats, original);
+        if (result == null && original != null) return null; // a regra do stack ja tirou o tint
+        return ownHairTint(stats, original, result);
+    }
+
+    /**
+     * {@code hairTintColor} / {@code hairTintIntensity} na PROPRIA forma (a de stack, se houver uma ativa, senao a base):
+     * mudam so o tint do cabelo, sobrancelha e cauda. Vazio / -1 = o tint da propria forma.
+     */
+    @Nullable
+    private static FormConfig.FormData ownHairTint(@Nullable StatsData stats, @Nullable FormConfig.FormData original, @Nullable FormConfig.FormData current) {
+        try {
+            if (stats == null) return current;
+            Character character = stats.getCharacter();
+            if (character == null) return current;
+            FormConfig.FormData source = character.hasActiveStackForm() ? character.getActiveStackFormData()
+                    : character.hasActiveForm() ? character.getActiveFormData() : null;
+            FormOptionsAccess own = of(source);
+            if (own == null) return current;
+            String color = own.dmzfo$hairTintColor();
+            double intensity = own.dmzfo$hairTintIntensity();
+            if (color.isEmpty() && intensity < 0.0) return current;
+            if (intensity == 0.0) return null;
+            FormConfig.FormData base = current != null ? current : source;
+            FormOptionsAccess access = of(base);
+            if (access == null) return current;
+            FormConfig.FormData variant = access.dmzfo$tintVariant(color.isEmpty() ? null : color, intensity >= 0.0 ? Math.min(1.0, intensity) : -1.0);
+            return variant != null ? variant : current;
+        } catch (RuntimeException e) {
+            return current;
+        }
+    }
+
+    @Nullable
+    private static FormConfig.FormData stackHairTailTint(StatsData stats, @Nullable FormConfig.FormData original) {
         try {
             if (original == null || stats == null) return original;
             Character character = stats.getCharacter();

@@ -42,6 +42,7 @@ public final class ArmorBlender {
     private static final Set<ResourceLocation> DYNAMIC_TEXTURES = new HashSet<>();
     private static final Set<String> FAILED = new HashSet<>();
     private static final Map<ResourceLocation, ResourceLocation> ARMLESS = new HashMap<>();
+    private static final Map<ResourceLocation, ResourceLocation> BLANKS = new HashMap<>();
 
     /** Retangulos dos bracos num layout de skin 64x64: x, y, largura, altura (braco direito/esquerdo, camada de fora). */
     private static final int[][] ARM_RECTS = {{40, 16, 16, 16}, {32, 48, 16, 16}, {40, 32, 16, 16}, {48, 48, 16, 16}};
@@ -77,7 +78,8 @@ public final class ArmorBlender {
 
         int step = Math.round(progress * STEPS);
         // particulas so nas formas SSJ4 GT e Daima (as outras trocas de roupa se desfazem sem particulas)
-        if (isSsj4(frame.from) || isSsj4(frame.to)) DissolveParticles.note(player, from, to, progress);
+        boolean whole = FormMatcher.NAKED.equals(frame.from) || FormMatcher.NAKED.equals(frame.to);
+        if (whole ? !keepsClothes(path) : (isSsj4(frame.from) || isSsj4(frame.to))) DissolveParticles.note(player, from, to, progress, whole);
         if (step <= 0) return from;
         if (step >= STEPS) return to;
         return blended(from, to, step);
@@ -91,6 +93,7 @@ public final class ArmorBlender {
     private static ResourceLocation resolve(ResourceLocation original, String path, @Nullable String profile) {
         if (profile == null) return original;
         if (FormMatcher.NO_ARMS.equals(profile)) return armless(original);
+        if (FormMatcher.NAKED.equals(profile)) return keepsClothes(path) ? original : blank(original);
         String rest = path.substring(ARMOR_DIR.length());
         String variantPath = profile.isEmpty() ? path : ARMOR_DIR + profile + "/" + rest;
         ResourceLocation variant = new ResourceLocation(DmzBetterVisualForms.TEXTURE_NAMESPACE, variantPath);
@@ -130,6 +133,7 @@ public final class ArmorBlender {
         DYNAMIC_TEXTURES.clear();
         BLENDS.clear();
         ARMLESS.clear();
+        BLANKS.clear();
         DENSITY.clear();
         VARIANT_EXISTS.clear();
         FAILED.clear();
@@ -167,6 +171,35 @@ public final class ArmorBlender {
             return original;
         } finally {
             if (output != null) output.close();
+        }
+    }
+
+    /** Armaduras saiyajins (lista da config) nao se rasgam no Oozaru. */
+    private static boolean keepsClothes(String path) {
+        String name = path.substring(ARMOR_DIR.length()).toLowerCase(Locale.ROOT);
+        for (String entry : SsjArmorConfig.OOZARU_KEEP_CLOTHES.get()) {
+            if (!entry.isBlank() && name.contains(entry.trim().toLowerCase(Locale.ROOT))) return true;
+        }
+        return false;
+    }
+
+    /** Textura toda transparente do tamanho da original (roupa rasgada por inteiro); fora da thread de render devolve a original. */
+    private static ResourceLocation blank(ResourceLocation original) {
+        ResourceLocation cached = BLANKS.get(original);
+        if (cached != null) return cached;
+        if (!RenderSystem.isOnRenderThread()) return original;
+        try (NativeImage source = read(original)) {
+            NativeImage output = new NativeImage(NativeImage.Format.RGBA, source.getWidth(), source.getHeight(), true);
+            ResourceLocation location = new ResourceLocation(DmzBetterVisualForms.TEXTURE_NAMESPACE,
+                    "dynamic/blank_" + sanitize(original.toString()) + "_" + Integer.toHexString(original.hashCode()));
+            Minecraft.getInstance().getTextureManager().register(location, new DynamicTexture(output));
+            DYNAMIC_TEXTURES.add(location);
+            BLANKS.put(original, location);
+            return location;
+        } catch (Exception e) {
+            BLANKS.put(original, original);
+            DmzBetterVisualForms.LOGGER.warn("[dmz_better_visual_forms] nao foi possivel gerar a textura vazia de {}.", original, e);
+            return original;
         }
     }
 

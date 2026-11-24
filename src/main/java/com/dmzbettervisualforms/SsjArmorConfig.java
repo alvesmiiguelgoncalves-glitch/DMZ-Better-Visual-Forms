@@ -2,6 +2,8 @@ package com.dmzbettervisualforms;
 
 import net.minecraftforge.common.ForgeConfigSpec;
 
+import java.util.List;
+
 /**
  * Configuracao do cliente: config/dmz_better_visual_forms-client.toml.
  * As formas que trocam de roupa ficam em dmz_better_visual_forms-forms.json.
@@ -38,6 +40,10 @@ public final class SsjArmorConfig {
     public static final ForgeConfigSpec.IntValue AURA_TEMP_SECONDS;
     public static final ForgeConfigSpec.EnumValue<RayMode> RAYS;
     public static final ForgeConfigSpec.IntValue RAYS_TEMP_SECONDS;
+    public static final ForgeConfigSpec.BooleanValue REVERT_DOUBLE_TAP;
+    public static final ForgeConfigSpec.IntValue REVERT_DOUBLE_TAP_MS;
+    public static final ForgeConfigSpec.BooleanValue OOZARU_TEAR_CLOTHES;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> OOZARU_KEEP_CLOTHES;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -78,6 +84,25 @@ public final class SsjArmorConfig {
         RAYS_TEMP_SECONDS = builder
                 .comment("Quanto tempo (segundos) os raios aparecem depois de transformar no modo REDUCED.")
                 .defineInRange("raysSeconds", 5, 1, 120);
+
+        REVERT_DOUBLE_TAP = builder
+                .comment("Aperte a tecla de destransformar (Descend) duas vezes rapido para voltar direto a forma base, pulando as formas do meio.",
+                        "Tambem existe a tecla 'Return to Base Form' em Controles (sem tecla por padrao).")
+                .define("revertDoubleTap", true);
+
+        REVERT_DOUBLE_TAP_MS = builder
+                .comment("Tempo maximo (milissegundos) entre os dois toques para valer como toque duplo.")
+                .defineInRange("revertDoubleTapMs", 350, 150, 1000);
+
+        OOZARU_TEAR_CLOTHES = builder
+                .comment("Ao virar Oozaru a roupa inteira se rasga (dissolve + particulas), menos as armaduras saiyajins.")
+                .define("oozaruTearClothes", true);
+
+        OOZARU_KEEP_CLOTHES = builder
+                .comment("Roupas que NAO se rasgam no Oozaru (armaduras saiyajins). Basta o nome aparecer no nome da roupa,",
+                        "ex.: \"bardock\" vale para bardock_armor e bardockdbs_armor.")
+                .defineListAllowEmpty("oozaruKeepClothes", List.of("bardock", "broly", "gine", "king_vegeta", "raditz", "turles",
+                        "vegeta_saiyan", "vegetaz_armor", "vegetanamek", "vegetasuper"), o -> o instanceof String);
 
         builder.pop();
         SPEC = builder.build();

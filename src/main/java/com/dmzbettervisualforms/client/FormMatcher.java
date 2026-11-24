@@ -19,6 +19,9 @@ public final class FormMatcher {
     /** Perfil especial: a roupa original do DMZ sem as mangas (formas "buffed", onde o DMZ nao desenha a manga). */
     public static final String NO_ARMS = "@noarms";
 
+    /** Perfil especial do Oozaru: a roupa inteira some (rasga), menos as armaduras saiyajins. */
+    public static final String NAKED = "@naked";
+
     /**
      * @return {@code null} = roupa original do DMZ; senao o nome da pasta de texturas dentro de {@code textures/armor/}
      *         ({@code ssj4gt}, {@code ssj4d}, o nome escolhido no JSON das formas ou {@link #NO_ARMS}).
@@ -30,6 +33,11 @@ public final class FormMatcher {
         Character character = stats.getCharacter();
         if (character == null || look == null) return null;
         String race = safe(character.getRaceName());
+
+        if (look.hasForm() && com.dmzbettervisualforms.SsjArmorConfig.OOZARU_TEAR_CLOTHES.get()
+                && safe(look.form()).toLowerCase(java.util.Locale.ROOT).contains("ozaru")) {
+            return NAKED;
+        }
 
         String formKey = look.hasForm() ? FormsConfig.formKey(race, safe(look.formGroup()), look.form()) : null;
         String stackKey = look.hasStack() ? FormsConfig.stackKey(safe(look.stackGroup()), look.stack()) : null;

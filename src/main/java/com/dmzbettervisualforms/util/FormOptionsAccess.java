@@ -7,6 +7,12 @@ import javax.annotation.Nullable;
 /** Implemented on {@code FormConfig.FormData} by {@code FormDataMixin}. All getters are null-safe. */
 public interface FormOptionsAccess {
 
+    /** Hair/eyebrow/tail tint color of this form. Empty = the form's own tintColor. */
+    String dmzfo$hairTintColor();
+
+    /** Hair/eyebrow/tail tint intensity of this form. Negative = the form's own tintIntensity. */
+    double dmzfo$hairTintIntensity();
+
     boolean dmzfo$forceTiedTail();
 
     boolean dmzfo$forceLooseTail();
