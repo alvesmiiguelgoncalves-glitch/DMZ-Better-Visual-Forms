@@ -52,6 +52,9 @@ public interface FormOptionsAccess {
     /** Default true. */
     boolean dmzfo$chargeKiAnimation();
 
+    /** "default", "none" (idle) or "overcharge" (base.ki_overcharge). */
+    String dmzfo$chargeKiMode();
+
     /** {@code true}/{@code false} = force angular eyes on/off (DMZ Blink); {@code null} = automatic (decided by the hair type). */
     @Nullable
     Boolean dmzfo$angularEyes();

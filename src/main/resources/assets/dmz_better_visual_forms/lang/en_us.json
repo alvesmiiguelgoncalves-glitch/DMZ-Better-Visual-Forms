@@ -3,6 +3,7 @@
   "key.dmz_better_visual_forms.toggle_aura_3d": "Toggle My Aura - 3D Style",
   "key.dmz_better_visual_forms.toggle_outlines": "Toggle Transformation Outlines",
   "key.dmz_better_visual_forms.toggle_tail": "Loosen/tie the tail",
+  "key.dmz_better_visual_forms.revert_base": "Return to Base Form",
   "message.dmz_better_visual_forms.on": "on",
   "message.dmz_better_visual_forms.off": "off",
   "message.dmz_better_visual_forms.aura3d": "My Aura - 3D Style: %s",

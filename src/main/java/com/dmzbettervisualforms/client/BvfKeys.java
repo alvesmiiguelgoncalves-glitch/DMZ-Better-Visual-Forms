@@ -31,6 +31,8 @@ public final class BvfKeys {
     public static final KeyMapping TOGGLE_AURA_3D = key("toggle_aura_3d", GLFW.GLFW_KEY_F6);
     public static final KeyMapping TOGGLE_OUTLINES = key("toggle_outlines", GLFW.GLFW_KEY_F7);
     public static final KeyMapping TOGGLE_TAIL = key("toggle_tail", GLFW.GLFW_KEY_F8);
+    /** Sem tecla por padrao: o jogador escolhe em Controles. */
+    public static final KeyMapping REVERT_BASE = key("revert_base", InputConstants.UNKNOWN.getValue());
 
     private BvfKeys() {
     }
@@ -50,6 +52,7 @@ public final class BvfKeys {
             event.register(TOGGLE_AURA_3D);
             event.register(TOGGLE_OUTLINES);
             event.register(TOGGLE_TAIL);
+            event.register(REVERT_BASE);
         }
     }
 
@@ -80,6 +83,15 @@ public final class BvfKeys {
                 message(mc, "message.dmz_better_visual_forms.outlines", next);
             }
             while (TOGGLE_TAIL.consumeClick()) toggleTail(mc);
+            while (REVERT_BASE.consumeClick()) revertToBase(mc);
+        }
+
+        /** Volta direto a forma base e tira o stack (mesma acao do clique direito no Descend do DMZ). */
+        private static void revertToBase(Minecraft mc) {
+            StatsData stats = StatsProvider.get(StatsCapability.INSTANCE, mc.player).orElse(null);
+            if (stats == null || stats.getCharacter() == null) return;
+            if (!stats.getCharacter().hasActiveForm() && !stats.getCharacter().hasActiveStackForm()) return;
+            NetworkHandler.sendToServer(new ExecuteActionC2S(ExecuteActionC2S.ActionType.FORCE_DESCEND, true));
         }
 
         private static void toggleTail(Minecraft mc) {

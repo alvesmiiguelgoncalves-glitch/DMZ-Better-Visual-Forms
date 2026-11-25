@@ -35,7 +35,8 @@ public abstract class FormDataMixin implements FormOptionsAccess {
     @Unique private Boolean noEyebrows = false;
     @Unique private Boolean eyeliner = false;
     @Unique private String eyelinerColor = "#000000";
-    @Unique private Boolean chargeKiAnimation = true;
+    /** true (default) = DMZ's own pose; false = stand still (idle); "overcharge" = base.ki_overcharge. Gson reads true/false literals into a String too. */
+    @Unique private String chargeKiAnimation = "true";
     /** "auto" (default: the DMZ Blink mod decides by the hair type), or true/false to force angular eyes on/off. */
     @Unique private String angularEyes = "auto";
     /** Tint of hair, eyebrows and tail of THIS form (empty / -1 = the form's own tint, like stackTint*). */
@@ -139,7 +140,15 @@ public abstract class FormDataMixin implements FormOptionsAccess {
 
     @Override
     public boolean dmzfo$chargeKiAnimation() {
-        return chargeKiAnimation == null || chargeKiAnimation;
+        return !"none".equals(dmzfo$chargeKiMode());
+    }
+
+    @Override
+    public String dmzfo$chargeKiMode() {
+        String v = chargeKiAnimation == null ? "" : chargeKiAnimation.trim().toLowerCase(java.util.Locale.ROOT);
+        if (v.equals("false") || v.equals("no") || v.equals("off") || v.equals("none") || v.equals("idle")) return "none";
+        if (v.equals("overcharge") || v.equals("ki_overcharge") || v.equals("base.ki_overcharge")) return "overcharge";
+        return "default";
     }
 
     @Override

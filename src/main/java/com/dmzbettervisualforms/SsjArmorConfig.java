@@ -40,9 +40,8 @@ public final class SsjArmorConfig {
     public static final ForgeConfigSpec.IntValue AURA_TEMP_SECONDS;
     public static final ForgeConfigSpec.EnumValue<RayMode> RAYS;
     public static final ForgeConfigSpec.IntValue RAYS_TEMP_SECONDS;
-    public static final ForgeConfigSpec.BooleanValue REVERT_DOUBLE_TAP;
-    public static final ForgeConfigSpec.IntValue REVERT_DOUBLE_TAP_MS;
     public static final ForgeConfigSpec.BooleanValue OOZARU_TEAR_CLOTHES;
+    public static final ForgeConfigSpec.DoubleValue TINT_FADE_SECONDS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> OOZARU_KEEP_CLOTHES;
 
     static {
@@ -85,14 +84,10 @@ public final class SsjArmorConfig {
                 .comment("Quanto tempo (segundos) os raios aparecem depois de transformar no modo REDUCED.")
                 .defineInRange("raysSeconds", 5, 1, 120);
 
-        REVERT_DOUBLE_TAP = builder
-                .comment("Aperte a tecla de destransformar (Descend) duas vezes rapido para voltar direto a forma base, pulando as formas do meio.",
-                        "Tambem existe a tecla 'Return to Base Form' em Controles (sem tecla por padrao).")
-                .define("revertDoubleTap", true);
-
-        REVERT_DOUBLE_TAP_MS = builder
-                .comment("Tempo maximo (milissegundos) entre os dois toques para valer como toque duplo.")
-                .defineInRange("revertDoubleTapMs", 350, 150, 1000);
+        TINT_FADE_SECONDS = builder
+                .comment("Tempo (segundos) que o tint da pele, cabelo, sobrancelha e cauda leva para deslizar de uma forma para outra.",
+                        "0 = desligado (o tint troca de uma vez, como no DMZ).")
+                .defineInRange("tintFadeSeconds", 1.0, 0.0, 5.0);
 
         OOZARU_TEAR_CLOTHES = builder
                 .comment("Ao virar Oozaru a roupa inteira se rasga (dissolve + particulas), menos as armaduras saiyajins.")

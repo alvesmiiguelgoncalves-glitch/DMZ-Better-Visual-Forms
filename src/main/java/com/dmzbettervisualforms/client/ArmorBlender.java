@@ -54,7 +54,7 @@ public final class ArmorBlender {
      * @param original textura que o DMZ escolheu (ja considera roupa danificada etc.)
      * @return a mesma textura, a roupa do perfil da forma, ou uma mistura de duas
      */
-    public static ResourceLocation apply(AbstractClientPlayer player, ResourceLocation original) {
+    public static ResourceLocation apply(AbstractClientPlayer player, ResourceLocation original, net.minecraft.world.entity.EquipmentSlot slot) {
         if (!SsjArmorConfig.ENABLED.get()) return original;
         if (!DMZ_NAMESPACE.equals(original.getNamespace())) return original;
 
@@ -79,7 +79,7 @@ public final class ArmorBlender {
         int step = Math.round(progress * STEPS);
         // particulas so nas formas SSJ4 GT e Daima (as outras trocas de roupa se desfazem sem particulas)
         boolean whole = FormMatcher.NAKED.equals(frame.from) || FormMatcher.NAKED.equals(frame.to);
-        if (whole ? !keepsClothes(path) : (isSsj4(frame.from) || isSsj4(frame.to))) DissolveParticles.note(player, from, to, progress, whole);
+        if (whole ? !keepsClothes(path) : (isSsj4(frame.from) || isSsj4(frame.to))) DissolveParticles.note(player, from, to, progress, whole, slot);
         if (step <= 0) return from;
         if (step >= STEPS) return to;
         return blended(from, to, step);

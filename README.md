@@ -22,8 +22,7 @@ F9 está livre.
 
 ### Voltar direto à forma base
 
-- **Toque duplo** na tecla de destransformar do DMZ (a do seu Descend, ex.: H): volta direto à forma base e tira o stack. Liga/desliga em `revertDoubleTap`; o intervalo entre os toques é `revertDoubleTapMs` (350 ms).
-- Tecla **Voltar à Forma Base** (*Return to Base Form*) em Controles → DragonMine Z. Vem sem tecla; escolha a sua (ex.: Alt+H ou Alt+G).
+- Tecla **Voltar à Forma Base** (*Return to Base Form*) em Controles → DMZ: Better Visual Forms. Vem sem tecla (indefinida); escolha a sua (ex.: Alt+H ou Alt+G).
 
 ## Menu Visuais do DMZ (Configurações)
 
@@ -90,7 +89,7 @@ A camisa e as mangas somem de cima para baixo (na transformação lenta e na ins
 | `angularEyes` | `"auto"` / `true` / `false` | Só com o mod **DMZ Blink** (DMZ Face Animations) instalado. `true` força os olhos angulares na forma (ex.: Kaioken, MUI, que usam o cabelo base); `false` tira os olhos angulares (ex.: SSJ dominado); `"auto"` (padrão) deixa o Blink decidir pelo cabelo (`ssj`, `ssj2`, `ssj3`, `ssj4`). Numa forma stack, o valor da stack vale mais que o da forma base. |
 | `eyeliner` | boolean / `false` | Desenha o delineado nos olhos (usa a textura `ssj4_eyes_N` do DMZ, escolhida pelo tipo de olho do jogador). |
 | `eyelinerColor` | texto / `"#000000"` | Cor do delineado. |
-| `chargeKiAnimation` | boolean / `true` | Com `false`, o jogador **não** faz a pose de carregar ki: fica parado (idle) enquanto a aura carrega. |
+| `chargeKiAnimation` | `true` / `false` / `"overcharge"` | `false`: o jogador **não** faz a pose de carregar ki (fica parado). `"overcharge"`: usa a animação `base.ki_overcharge` ao carregar ki. |
 
 ## Exemplo
 
@@ -193,3 +192,7 @@ Vazio (`""`) / `-1` = usa o tint da própria forma (o que ela já tem em `tintCo
 
 Ao virar Oozaru a roupa inteira se desfaz (dissolve + pedacinhos caindo), exceto as armaduras saiyajins (lista `oozaruKeepClothes` no toml: bardock, broly, gine, king_vegeta, raditz, turles, vegeta_saiyan, vegetaz_armor, vegetanamek, vegetasuper). Desliga em `oozaruTearClothes`. Ao voltar, a roupa reaparece.
 Também: as partículas agora só saem da camisa (tronco e braços) nas formas SSJ4, e nunca ficam maiores que as de um jogador normal.
+
+## Tint acompanha a transformação (2.9.0)
+
+O tint da pele, cabelo, sobrancelha e cauda agora desliza de uma forma para a outra (e some devagar ao perder a forma) em vez de trocar de uma vez. Tempo em `tintFadeSeconds` no toml (1.0 s; `0` desliga e volta ao comportamento do DMZ).

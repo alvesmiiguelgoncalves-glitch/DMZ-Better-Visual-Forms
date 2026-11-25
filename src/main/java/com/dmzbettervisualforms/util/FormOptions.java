@@ -225,7 +225,7 @@ public final class FormOptions {
     @Nullable
     public static FormConfig.FormData resolveHairTailTint(StatsData stats) {
         FormConfig.FormData original = DMZSkinLayer.resolveTintForm(stats);
-        FormConfig.FormData result = hairTailTint(stats, original);
+        FormConfig.FormData result = TintSmoother.HAIR.smooth(stats, hairTailTint(stats, original));
         if (result != original && !loggedHook) {
             loggedHook = true;
             DmzBetterVisualForms.LOGGER.info("[dmz_better_visual_forms] hair/tail tint override is active (intensity {}).",
@@ -282,6 +282,17 @@ public final class FormOptions {
     }
 
     // ------------------------------------------------------------------ ki charge animation
+
+    /** "none" if any active form turns the pose off; else "overcharge" if one asks for it; else "default". */
+    public static String kiChargeMode(@Nullable Entity entity) {
+        String result = "default";
+        for (FormOptionsAccess form : active(characterOf(entity))) {
+            String mode = form.dmzfo$chargeKiMode();
+            if ("none".equals(mode)) return "none";
+            if ("overcharge".equals(mode)) result = mode;
+        }
+        return result;
+    }
 
     public static boolean suppressKiChargeAnimation(@Nullable Entity entity) {
         for (FormOptionsAccess form : active(characterOf(entity))) {

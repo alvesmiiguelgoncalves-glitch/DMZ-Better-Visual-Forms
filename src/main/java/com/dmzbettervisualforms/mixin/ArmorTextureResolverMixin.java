@@ -27,7 +27,7 @@ public abstract class ArmorTextureResolverMixin {
         if (player == null) return;
 
         ResourceLocation original = cir.getReturnValue();
-        ResourceLocation swapped = ArmorBlender.apply(player, original);
+        ResourceLocation swapped = ArmorBlender.apply(player, original, slot);
         if (swapped != original) {
             cir.setReturnValue(swapped);
         }

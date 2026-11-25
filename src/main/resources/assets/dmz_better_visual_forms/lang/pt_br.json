@@ -3,6 +3,7 @@
   "key.dmz_better_visual_forms.toggle_aura_3d": "Ligar/desligar Minha Aura - Estilo 3D",
   "key.dmz_better_visual_forms.toggle_outlines": "Ligar/desligar Contornos de Transformação",
   "key.dmz_better_visual_forms.toggle_tail": "Soltar/amarrar a cauda",
+  "key.dmz_better_visual_forms.revert_base": "Voltar à Forma Base",
   "message.dmz_better_visual_forms.on": "ligado",
   "message.dmz_better_visual_forms.off": "desligado",
   "message.dmz_better_visual_forms.aura3d": "Minha Aura - Estilo 3D: %s",

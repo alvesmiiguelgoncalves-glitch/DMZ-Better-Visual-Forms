@@ -32,13 +32,14 @@ import java.util.Map;
 @Mod.EventBusSubscriber(modid = DmzBetterVisualForms.MOD_ID, value = Dist.CLIENT)
 public final class DissolveParticles {
 
-    private record Key(int player, ResourceLocation from) {
+    private record Key(int player, ResourceLocation from, int region) {
     }
 
     private static final class Note {
         ResourceLocation from;
         ResourceLocation to;
         boolean whole;
+        int region;
         int lastStep = -1;
         boolean rising;
         long tick;
@@ -65,16 +66,27 @@ public final class DissolveParticles {
      * @param progress 0 = roupa inteira (com camisa), 1 = toda desfeita
      * @param whole    true = a roupa inteira se rasga (Oozaru): solta particulas de todas as pecas; false = so da camisa (tronco e bracos)
      */
-    static void note(AbstractClientPlayer player, ResourceLocation from, ResourceLocation to, float progress, boolean whole) {
+    static void note(AbstractClientPlayer player, ResourceLocation from, ResourceLocation to, float progress, boolean whole,
+                     net.minecraft.world.entity.EquipmentSlot slot) {
+        // A textura layer1 e a mesma para camisa e botas: so solta particulas do pedaco que esta mesmo vestido.
+        // 0 = camisa (tronco e bracos), 1 = botas, 2 = calca. Fora do Oozaru so a camisa solta.
+        int region = switch (slot) {
+            case CHEST -> 0;
+            case FEET -> 1;
+            case LEGS -> 2;
+            default -> -1;
+        };
+        if (region < 0 || (!whole && region != 0)) return;
         Minecraft mc = Minecraft.getInstance();
         ClientLevel level = mc.level;
         if (level == null) return;
         if (!SsjArmorConfig.ENABLED.get() || !SsjArmorConfig.DISSOLVE_PARTICLES.get()) return;
 
-        Note note = NOTES.computeIfAbsent(new Key(player.getId(), from), key -> new Note());
+        Note note = NOTES.computeIfAbsent(new Key(player.getId(), from, region), key -> new Note());
         note.from = from;
         note.to = to;
         note.whole = whole;
+        note.region = region;
         note.tick = level.getGameTime();
 
         int step = Math.round(progress * ArmorBlender.STEPS);
@@ -123,7 +135,7 @@ public final class DissolveParticles {
 
     /** Solta as particulas dos pixels que somem nos passos {@code (after, upTo]}. */
     private static void emit(ClientLevel level, Player player, Note note, int after, int upTo) {
-        Burst burst = burst(note.from, note.to, note.whole);
+        Burst burst = burst(note.from, note.to, note.whole, note.region);
         if (burst.size() == 0) return;
 
         float keep = Math.min(1.0f, SsjArmorConfig.DISSOLVE_PARTICLE_COUNT.get() / (float) burst.size());
@@ -153,8 +165,8 @@ public final class DissolveParticles {
         }
     }
 
-    private static Burst burst(ResourceLocation from, ResourceLocation to, boolean whole) {
-        String key = from + "|" + to + "|" + whole;
+    private static Burst burst(ResourceLocation from, ResourceLocation to, boolean whole, int region) {
+        String key = from + "|" + to + "|" + region;
         Burst cached = BURSTS.get(key);
         if (cached != null) return cached;
 
@@ -167,7 +179,7 @@ public final class DissolveParticles {
                 // sem a textura de destino
             }
             try {
-                result = compute(a, b, whole, from.getPath().contains("_layer2"));
+                result = compute(a, b, region);
             } finally {
                 if (b != null) b.close();
             }
@@ -178,9 +190,7 @@ public final class DissolveParticles {
         return result;
     }
 
-    private static Burst compute(NativeImage a, NativeImage b, boolean whole, boolean legsTexture) {
-        // So a camisa solta particulas: a textura das calcas (layer2) nao entra, nem as botas, as pernas ou o punho (munhequeira).
-        if (!whole && legsTexture) return EMPTY;
+    private static Burst compute(NativeImage a, NativeImage b, int region) {
         int w = a.getWidth();
         int h = a.getHeight();
         List<float[]> found = new ArrayList<>();
@@ -195,7 +205,8 @@ public final class DissolveParticles {
                 int py = y * 64 / h;
                 float[] position = PixelMapper.map(px, py);
                 if (position == null) continue;   // fora das pecas conhecidas (camada de fora etc.)
-                if (!whole && (position[1] < 12.0f || ArmorBlender.hem(px, py))) continue;   // so tronco e bracos (altura >= 12), sem o punho
+                if (region == 0 && (position[1] < 12.0f || ArmorBlender.hem(px, py))) continue;   // camisa: tronco e bracos, sem o punho
+                if (region == 1 && position[1] >= 6.0f) continue;                                 // botas: so a parte de baixo das pernas
 
                 // mesmo criterio da mistura: pixel so da roupa antiga some no primeiro passo k com k/STEPS > limiar
                 float threshold = ArmorBlender.threshold(x, py);
