@@ -3,7 +3,9 @@ package com.dmzbettervisualforms.util;
 import com.dmzbettervisualforms.DmzBetterVisualForms;
 import com.dragonminez.client.render.layer.AuraTintTracker;
 import com.dragonminez.client.render.layer.DMZSkinLayer;
+import com.dragonminez.client.systems.FormVisualTransition;
 import com.dragonminez.common.config.FormConfig;
+import com.dragonminez.common.stats.FormTransition;
 import com.dragonminez.common.stats.StatsCapability;
 import com.dragonminez.common.stats.StatsData;
 import com.dragonminez.common.stats.StatsProvider;
@@ -131,9 +133,46 @@ public final class FormOptions {
      */
     @Nullable
     public static FormConfig.FormData hairTailTint(StatsData stats, @Nullable FormConfig.FormData original) {
-        FormConfig.FormData result = stackHairTailTint(stats, original);
+        Character character = stats == null ? null : stats.getCharacter();
+        return character == null ? original : hairTailTint(FormTransition.Look.current(character), original);
+    }
+
+    @Nullable
+    public static FormConfig.FormData hairTailTint(FormTransition.Look look, @Nullable FormConfig.FormData original) {
+        FormConfig.FormData result = stackHairTailTint(look, original);
         if (result == null && original != null) return null; // a regra do stack ja tirou o tint
-        return ownHairTint(stats, original, result);
+        return ownHairTint(look, original, result);
+    }
+
+    /** O mesmo que {@code DMZSkinLayer.resolveTintForm}, mas para um visual (Look) qualquer, nao so o atual. */
+    @Nullable
+    public static FormConfig.FormData tintFormOf(FormTransition.Look look) {
+        if (look.hasStack() && look.stackData() != null && look.stackData().hasTint()) return look.stackData();
+        if (look.hasForm() && look.formData() != null && look.formData().hasTint()) return look.formData();
+        return null;
+    }
+
+    /**
+     * Tint do corpo e do cabelo/cauda, ja misturados com o progresso da transformacao do DMZ: na carga (lenta ou instantanea)
+     * vai do tint atual para o do visual alvo, e ao voltar, do tint do visual anterior para o atual. Sem transformacao
+     * em andamento (ou no menu de pre-visualizacao) devolve os objetos normais, sem copiar nada.
+     */
+    public static TintBlend.Result tints(StatsData stats) {
+        Character character = stats.getCharacter();
+        FormTransition.Look now = FormTransition.Look.current(character);
+        FormConfig.FormData original = DMZSkinLayer.resolveTintForm(stats);
+        FormConfig.FormData body = bodyTintForm(stats, original);
+        FormConfig.FormData hair = hairTailTint(stats, original);
+        if (DMZSkinLayer.PREVIEW_MODE) return new TintBlend.Result(body, hair);
+
+        FormTransition.Charge charge = FormVisualTransition.charge(stats);
+        FormTransition.Revert revert = FormVisualTransition.revert(stats);
+        if (charge == null && revert == null) return new TintBlend.Result(body, hair);
+
+        List<TintBlend.Step> steps = new ArrayList<>(2);
+        if (charge != null) steps.add(new TintBlend.Step(charge.look(), charge.factor()));
+        if (revert != null) steps.add(new TintBlend.Step(revert.look(), revert.factor()));
+        return TintBlend.blend(stats, body, hair, steps);
     }
 
     /**
@@ -141,13 +180,9 @@ public final class FormOptions {
      * mudam so o tint do cabelo, sobrancelha e cauda. Vazio / -1 = o tint da propria forma.
      */
     @Nullable
-    private static FormConfig.FormData ownHairTint(@Nullable StatsData stats, @Nullable FormConfig.FormData original, @Nullable FormConfig.FormData current) {
+    private static FormConfig.FormData ownHairTint(FormTransition.Look look, @Nullable FormConfig.FormData original, @Nullable FormConfig.FormData current) {
         try {
-            if (stats == null) return current;
-            Character character = stats.getCharacter();
-            if (character == null) return current;
-            FormConfig.FormData source = character.hasActiveStackForm() ? character.getActiveStackFormData()
-                    : character.hasActiveForm() ? character.getActiveFormData() : null;
+            FormConfig.FormData source = look.hasStack() ? look.stackData() : look.hasForm() ? look.formData() : null;
             FormOptionsAccess own = of(source);
             if (own == null) return current;
             String color = own.dmzfo$hairTintColor();
@@ -165,14 +200,13 @@ public final class FormOptions {
     }
 
     @Nullable
-    private static FormConfig.FormData stackHairTailTint(StatsData stats, @Nullable FormConfig.FormData original) {
+    private static FormConfig.FormData stackHairTailTint(FormTransition.Look look, @Nullable FormConfig.FormData original) {
         try {
-            if (original == null || stats == null) return original;
-            Character character = stats.getCharacter();
-            if (character == null || !character.hasActiveStackForm() || character.getActiveStackFormData() != original) return original;
-            if (!character.hasActiveForm()) return original;
+            if (original == null) return original;
+            if (!look.hasStack() || look.stackData() != original) return original;
+            if (!look.hasForm()) return original;
 
-            FormOptionsAccess base = of(character.getActiveFormData());
+            FormOptionsAccess base = of(look.formData());
             if (base == null) return original;
             if (!base.dmzfo$stackTintAffectsHairAndTail()) return null;
 
@@ -196,13 +230,17 @@ public final class FormOptions {
      */
     @Nullable
     public static FormConfig.FormData bodyTintForm(@Nullable StatsData stats, @Nullable FormConfig.FormData original) {
-        try {
-            if (stats == null) return original;
-            Character character = stats.getCharacter();
-            if (character == null || !character.hasActiveStackForm() || !character.hasActiveForm()) return original;
+        Character character = stats == null ? null : stats.getCharacter();
+        return character == null ? original : bodyTintForm(FormTransition.Look.current(character), original);
+    }
 
-            FormOptionsAccess stack = of(character.getActiveStackFormData());
-            FormOptionsAccess base = of(character.getActiveFormData());
+    @Nullable
+    public static FormConfig.FormData bodyTintForm(FormTransition.Look look, @Nullable FormConfig.FormData original) {
+        try {
+            if (!look.hasStack() || !look.hasForm()) return original;
+
+            FormOptionsAccess stack = of(look.stackData());
+            FormOptionsAccess base = of(look.formData());
             if (stack == null || base == null) return original;
 
             String color = base.dmzfo$stackTintColor();
@@ -225,7 +263,7 @@ public final class FormOptions {
     @Nullable
     public static FormConfig.FormData resolveHairTailTint(StatsData stats) {
         FormConfig.FormData original = DMZSkinLayer.resolveTintForm(stats);
-        FormConfig.FormData result = TintSmoother.HAIR.smooth(stats, hairTailTint(stats, original));
+        FormConfig.FormData result = tints(stats).hair();
         if (result != original && !loggedHook) {
             loggedHook = true;
             DmzBetterVisualForms.LOGGER.info("[dmz_better_visual_forms] hair/tail tint override is active (intensity {}).",

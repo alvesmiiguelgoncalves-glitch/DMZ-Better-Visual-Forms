@@ -195,4 +195,29 @@ Também: as partículas agora só saem da camisa (tronco e braços) nas formas S
 
 ## Tint acompanha a transformação (2.9.0)
 
-O tint da pele, cabelo, sobrancelha e cauda agora desliza de uma forma para a outra (e some devagar ao perder a forma) em vez de trocar de uma vez. Tempo em `tintFadeSeconds` no toml (1.0 s; `0` desliga e volta ao comportamento do DMZ).
+O tint da pele, cabelo, sobrancelha e cauda agora segue o progresso da transformação do DMZ, como as cores do corpo: na transformação lenta (segurando G) ele vai mudando junto com a barra de carga, na instantânea e ao voltar faz a mesma transição curta do DMZ. Nos menus (V e X) a pré-visualização mostra o tint da forma normalmente.
+
+## Ajustes visuais das formas, sem mexer nos JSON do DMZ (2.9.1)
+
+O mod pode mudar **só a parte visual** das formas (cores do corpo, cabelo, olhos, aura, raios, tint, modelo, contorno e as opções do Better Visual Forms), sem tocar nos status, requisitos, custos nem maestria do DMZ.
+
+Duas fontes, na mesma ordem de prioridade (a do config vence a do mod, campo a campo):
+
+1. `src/main/resources/assets/dmz_better_visual_forms/visuals.json`, dentro do próprio mod (para quem quer distribuir os ajustes junto com o mod);
+2. `config/dmz_better_visual_forms-visuals.json`, criado vazio na primeira vez e relido quando você salva (não precisa reiniciar).
+
+Formato: a chave é a mesma do `forms.json` do addon (`race.dragonminez.<raça>.form.<grupo>.<forma>` ou `stack.<grupo>.<forma>`; `.*` no lugar da forma vale para o grupo todo) e o valor tem só o que quer mudar:
+
+```json
+{
+  "race.dragonminez.saiyan.form.supersaiyan.supersaiyan": {
+    "hairColor": "#FFD700",
+    "auraColor": "#FFE066",
+    "tintColor": "#FFAA00",
+    "tintIntensity": 0.2
+  },
+  "stack.kaioken.*": { "tintColor": "#FF2020" }
+}
+```
+
+Dá para colar o objeto inteiro da forma: status, requisitos, custos, drenos, maestria e afins são ignorados.

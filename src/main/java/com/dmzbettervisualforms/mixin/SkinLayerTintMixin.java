@@ -1,7 +1,7 @@
 package com.dmzbettervisualforms.mixin;
 
 import com.dmzbettervisualforms.util.FormOptions;
-import com.dmzbettervisualforms.util.TintSmoother;
+import com.dmzbettervisualforms.util.TintBlend;
 import com.dragonminez.client.render.layer.DMZSkinLayer;
 import com.dragonminez.common.config.FormConfig;
 import com.dragonminez.common.stats.StatsData;
@@ -23,9 +23,10 @@ public abstract class SkinLayerTintMixin {
                     target = "Lcom/dragonminez/client/render/layer/DMZSkinLayer;resolveTintForm(Lcom/dragonminez/common/stats/StatsData;)Lcom/dragonminez/common/config/FormConfig$FormData;"))
     private FormConfig.FormData dmzfo$bodyTint(StatsData stats) {
         FormConfig.FormData original = DMZSkinLayer.resolveTintForm(stats);
-        FormConfig.FormData body = TintSmoother.BODY.smooth(stats, FormOptions.bodyTintForm(stats, original));
+        TintBlend.Result tints = FormOptions.tints(stats);
+        FormConfig.FormData body = tints.body();
         FormOptions.bodyTint = body;
-        FormOptions.hairTailTint = TintSmoother.HAIR.smooth(stats, FormOptions.hairTailTint(stats, original));
+        FormOptions.hairTailTint = tints.hair();
         FormOptions.tintContextValid = true;
         return body;
     }

@@ -41,7 +41,6 @@ public final class SsjArmorConfig {
     public static final ForgeConfigSpec.EnumValue<RayMode> RAYS;
     public static final ForgeConfigSpec.IntValue RAYS_TEMP_SECONDS;
     public static final ForgeConfigSpec.BooleanValue OOZARU_TEAR_CLOTHES;
-    public static final ForgeConfigSpec.DoubleValue TINT_FADE_SECONDS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> OOZARU_KEEP_CLOTHES;
 
     static {
@@ -83,11 +82,6 @@ public final class SsjArmorConfig {
         RAYS_TEMP_SECONDS = builder
                 .comment("Quanto tempo (segundos) os raios aparecem depois de transformar no modo REDUCED.")
                 .defineInRange("raysSeconds", 5, 1, 120);
-
-        TINT_FADE_SECONDS = builder
-                .comment("Tempo (segundos) que o tint da pele, cabelo, sobrancelha e cauda leva para deslizar de uma forma para outra.",
-                        "0 = desligado (o tint troca de uma vez, como no DMZ).")
-                .defineInRange("tintFadeSeconds", 1.0, 0.0, 5.0);
 
         OOZARU_TEAR_CLOTHES = builder
                 .comment("Ao virar Oozaru a roupa inteira se rasga (dissolve + particulas), menos as armaduras saiyajins.")
