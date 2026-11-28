@@ -221,3 +221,16 @@ Formato: a chave é a mesma do `forms.json` do addon (`race.dragonminez.<raça>.
 ```
 
 Dá para colar o objeto inteiro da forma: status, requisitos, custos, drenos, maestria e afins são ignorados.
+
+## Cores só suas na Customização: tint do cabelo e olhos do SSJ4 GT (2.10.0)
+
+Na tela de Customização do personagem:
+
+- **Cabelo:** com o **SSJ4 (GT)** na prévia (setas embaixo), aparece uma segunda caixa de cor ao lado da cor do cabelo: é o **tint** do cabelo, sobrancelha e cauda dessa forma.
+- **Olhos:** a aba ganhou setas embaixo com só duas opções, **Base** e **SSJ4 (GT)**. Em SSJ4 (GT) as duas caixas de cor mudam a cor do olho dessa forma.
+
+As caixas começam com a cor do JSON da forma (`hairTintColor`/`tintColor` e `eye1Color`/`eye2Color`) e o jogador pode mudar. A escolha vale **só para você**: fica em `config/dmz_better_visual_forms-player.json`, não altera o JSON da forma nem aparece para outros jogadores. A forma SSJ4 GT é a que usa o modelo `ssj4gt`.
+
+## Voltar à forma base mais rápido (2.10.0)
+
+O DMZ não sincronizava com o servidor na hora ao voltar à base por esse caminho; agora sincroniza como o Descend normal. (Em servidor dedicado o mod precisa estar também no servidor; no singleplayer já vale.)

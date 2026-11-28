@@ -1,6 +1,7 @@
 package com.dmzbettervisualforms.util;
 
 import com.dmzbettervisualforms.DmzBetterVisualForms;
+import com.dmzbettervisualforms.client.PlayerVisuals;
 import com.dragonminez.client.render.layer.AuraTintTracker;
 import com.dragonminez.client.render.layer.DMZSkinLayer;
 import com.dragonminez.client.systems.FormVisualTransition;
@@ -134,14 +135,40 @@ public final class FormOptions {
     @Nullable
     public static FormConfig.FormData hairTailTint(StatsData stats, @Nullable FormConfig.FormData original) {
         Character character = stats == null ? null : stats.getCharacter();
-        return character == null ? original : hairTailTint(FormTransition.Look.current(character), original);
+        if (character == null) return original;
+        boolean previous = localOwner;
+        localOwner = PlayerVisuals.isLocal(stats);
+        try {
+            return hairTailTint(FormTransition.Look.current(character), original);
+        } finally {
+            localOwner = previous;
+        }
     }
+
+    /** true enquanto calculamos o tint do jogador local (so ele usa as cores escolhidas na Customizacao). */
+    private static boolean localOwner;
 
     @Nullable
     public static FormConfig.FormData hairTailTint(FormTransition.Look look, @Nullable FormConfig.FormData original) {
         FormConfig.FormData result = stackHairTailTint(look, original);
         if (result == null && original != null) return null; // a regra do stack ja tirou o tint
-        return ownHairTint(look, original, result);
+        return playerHairTint(look, original, ownHairTint(look, original, result));
+    }
+
+    /** Tint do cabelo do SSJ4 GT escolhido pelo proprio jogador (Customizacao): so o local, so sem stack, so se a forma ja tem tint. */
+    @Nullable
+    private static FormConfig.FormData playerHairTint(FormTransition.Look look, @Nullable FormConfig.FormData original, @Nullable FormConfig.FormData current) {
+        try {
+            if (!localOwner || current == null || original == null) return current;
+            if (!look.hasForm() || look.formData() != original || !PlayerVisuals.isSsj4Gt(original)) return current;
+            String color = PlayerVisuals.custom(PlayerVisuals.KEY_HAIR_TINT);
+            if (color == null) return current;
+            FormOptionsAccess access = of(current);
+            FormConfig.FormData variant = access == null ? null : access.dmzfo$tintVariant(color, -1.0);
+            return variant != null ? variant : current;
+        } catch (RuntimeException e) {
+            return current;
+        }
     }
 
     /** O mesmo que {@code DMZSkinLayer.resolveTintForm}, mas para um visual (Look) qualquer, nao so o atual. */
@@ -158,8 +185,16 @@ public final class FormOptions {
      * em andamento (ou no menu de pre-visualizacao) devolve os objetos normais, sem copiar nada.
      */
     public static TintBlend.Result tints(StatsData stats) {
-        Character character = stats.getCharacter();
-        FormTransition.Look now = FormTransition.Look.current(character);
+        boolean previous = localOwner;
+        localOwner = PlayerVisuals.isLocal(stats);
+        try {
+            return tintsInner(stats);
+        } finally {
+            localOwner = previous;
+        }
+    }
+
+    private static TintBlend.Result tintsInner(StatsData stats) {
         FormConfig.FormData original = DMZSkinLayer.resolveTintForm(stats);
         FormConfig.FormData body = bodyTintForm(stats, original);
         FormConfig.FormData hair = hairTailTint(stats, original);

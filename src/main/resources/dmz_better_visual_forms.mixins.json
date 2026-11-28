@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "dmz_better_visual_forms.refmap.json",
   "mixins": [
-    "FormDataMixin"
+    "FormDataMixin",
+    "ExecuteActionC2SMixin"
   ],
   "client": [
     "ArmorTextureResolverMixin",
@@ -28,7 +29,9 @@
     "ConfigMenuScreenMixin",
     "StatusMixin",
     "AuraFxStateMixin",
-    "BlinkAngularEyesMixin"
+    "BlinkAngularEyesMixin",
+    "FormVisualTransitionMixin",
+    "CharacterCustomizationScreenMixin"
   ],
   "server": [],
   "injectors": {
